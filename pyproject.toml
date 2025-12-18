@@ -1,11 +1,22 @@
 [project]
-name = "lsdb-benchmarking"
+name = "lbench"
 version = "0.0.1"
 dependencies = [
     "pytest",
     "pytest-benchmark",
+    "typer",
+    "dash",
+    "dash-bootstrap-components",
+    "pandas",
+    "snakeviz"
 ]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+lbench = "lbench.cli.lbench:app"
+
+[project.entry-points.pytest11]
+yourpkg-bench = "lbench.pytest.plugin"

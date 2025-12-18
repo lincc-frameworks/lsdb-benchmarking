@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def test_local_catalog_partition_read(
-    gaia_collection_path, benchmark, single_thread_dask_client
+    gaia_collection_path, dask_benchmark
 ):
     gaia = lsdb.read_hats(gaia_collection_path)
     cat = gaia.partitions[0]
@@ -13,7 +13,7 @@ def test_local_catalog_partition_read(
     def load_partition():
         cat.compute()
 
-    benchmark(load_partition)
+    dask_benchmark(load_partition)
 
 
 def test_local_catalog_npd_read(gaia_collection_path, benchmark):
@@ -42,20 +42,8 @@ def test_local_catalog_pd_read(gaia_collection_path, benchmark):
     benchmark(load_partition_pd)
 
 
-def test_local_catalog_partition_read_dask_performance(
-    gaia_collection_path, dask_benchmark
-):
-    gaia = lsdb.read_hats(gaia_collection_path)
-    cat = gaia.partitions[0]
-
-    def load_partition():
-        cat.compute()
-
-    dask_benchmark(load_partition)
-
-
 def test_local_catalog_multi_partition_read(
-    gaia_collection_path, benchmark, single_thread_dask_client
+    gaia_collection_path, dask_benchmark
 ):
     gaia = lsdb.read_hats(gaia_collection_path)
     n_partitions = 10
@@ -64,7 +52,7 @@ def test_local_catalog_multi_partition_read(
     def load_partitions():
         cat.compute()
 
-    benchmark(load_partitions)
+    dask_benchmark(load_partitions)
 
 
 def test_local_catalog_multi_partition_npd_read(gaia_collection_path, benchmark):
