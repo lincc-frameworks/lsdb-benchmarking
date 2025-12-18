@@ -5,17 +5,14 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-from lbench.cli.env import ROOT_DIR_ENV_VAR, CURRENT_DIR_ENV_VAR
+from lbench.cli.env import CURRENT_DIR_ENV_VAR, get_lbench_root_dir
 
 app = typer.Typer(help="lbench CLI — run benchmarks and dashboards")
 
 @app.command()
 def run(tests: list[str] = typer.Argument(None)):
     """Run benchmarks"""
-    root = os.environ.get(ROOT_DIR_ENV_VAR)
-    if not root:
-        print(f"{ROOT_DIR_ENV_VAR} is not set")
-        raise typer.Exit(code=1)
+    root = get_lbench_root_dir()
 
     root = Path(root).expanduser().resolve()
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")

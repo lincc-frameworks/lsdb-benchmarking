@@ -1,17 +1,22 @@
 import json
 import os
+import re
 from pathlib import Path
 import dash
 from dash import html, Input, Output
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-from flask import send_from_directory
+from flask import send_from_directory, Response
+from tuna.main import read, render
+from tuna import __file__ as tuna_file
 
-from lbench.cli.env import ROOT_DIR_ENV_VAR
+from lbench.cli.env import get_lbench_root_dir
+
+TUNA_WEB_DIR = Path(tuna_file).parent / "web"
 
 # Root directory where benchmark runs are stored
-ROOT_DIR = Path(os.environ.get(ROOT_DIR_ENV_VAR))
+ROOT_DIR = get_lbench_root_dir()
 
 # --- Load and cache runs ---
 def load_run_json(run_dir):
@@ -54,50 +59,63 @@ def benchmark_to_table(bm, run_name):
     dask_table = None
     total_time_table = None
     dask_report_button = None
+    flamegraph_button = None
 
     if "extra_info" in bm and bm["extra_info"]:
         extra = bm["extra_info"]
 
-        n_tasks = extra.get("n_tasks")
-        keys = [k[0] for k in extra.get("keys", [])]
+        if "dask" in extra:
+            dask_stats = extra["dask"]
+            n_tasks = dask_stats.get("n_tasks")
+            keys = [k[0] for k in dask_stats.get("keys", [])]
 
-        times = [
-            k["stop"] - k["start"]
-            for s in extra.get("startstops", [])
-            for k in s
-        ]
+            times = [
+                sum([k["stop"] - k["start"] for k in s])
+                for s in dask_stats.get("startstops", [])
+            ]
 
-        total_dask_time = sum(times)
+            total_dask_time = sum(times)
 
-        total_time_by_key = {}
-        for k, t in zip(keys, times):
-            total_time_by_key[k] = total_time_by_key.get(k, 0) + t
+            total_time_by_key = {}
+            for k, t in zip(keys, times):
+                total_time_by_key[k] = total_time_by_key.get(k, 0) + t
 
-        dask_table = pd.DataFrame({
-            "n_tasks": [n_tasks],
-            "total_dask_time": [total_dask_time],
-        })
+            dask_table = pd.DataFrame({
+                "n_tasks": [n_tasks],
+                "total_dask_time": [total_dask_time],
+            })
 
-        sorted_key_times = sorted(
-            total_time_by_key.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+            sorted_key_times = sorted(
+                total_time_by_key.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )
 
-        total_time_table = pd.DataFrame({
-            "task_key": [k for k, _ in sorted_key_times],
-            "total_time": [t for _, t in sorted_key_times],
-        })
+            total_time_table = pd.DataFrame({
+                "task_key": [k for k, _ in sorted_key_times],
+                "total_time": [t for _, t in sorted_key_times],
+            })
 
-        # --- Dask report button ---
-        report_path = extra.get("performance_report")
-        if report_path:
-            report_name = Path(report_path).name
-            dask_report_button = html.A(
-                "Open Dask Performance Report",
-                href=f"/dask_report/{run_name}/{report_name}",
+            # --- Dask report button ---
+            report_path = dask_stats.get("performance_report")
+            if report_path:
+                report_name = Path(report_path).name
+                dask_report_button = html.A(
+                    "Open Dask Performance Report",
+                    href=f"/file/{run_name}/{report_name}",
+                    target="_blank",
+                    className="btn btn-outline-primary mt-2",
+                    role="button",
+                )
+
+        if "cprofile_path" in extra:
+            profile_path = extra["cprofile_path"]
+            profile_name = Path(profile_path).name
+            flamegraph_button = html.A(
+                "Open Flamegraph",
+                href=f"/flamegraph/{run_name}/{profile_name}",
                 target="_blank",
-                className="btn btn-outline-primary mt-2",
+                className="btn btn-outline-secondary mt-2",
                 role="button",
             )
 
@@ -123,11 +141,20 @@ def benchmark_to_table(bm, run_name):
             ])
         )
 
+        buttons = []
         if dask_report_button is not None:
+            buttons.append(dask_report_button)
+        if flamegraph_button is not None:
+            buttons.append(flamegraph_button)
+
+        if len(buttons) > 0:
             card_children.append(
                 dbc.CardBody(
-                    dask_report_button,
-                    className="text-end"
+                    html.Div(
+                        buttons,
+                        className="btn-group mt-2",
+                    ),
+                    className="text-end",
                 )
             )
 
@@ -182,12 +209,14 @@ app.layout = dbc.Container([
     Input({"type": "run-item", "index": dash.ALL}, "n_clicks"),
 )
 def update_benchmarks_and_sidebar(n_clicks_list):
-    if not any(n_clicks_list):
-        # No run clicked yet
+    # Find which item was clicked using ctx.triggered
+    triggered = dash.ctx.triggered_id  # this is the dict {"type": "run-item", "index": i}
+
+    if not triggered:
+        # No click yet
         return html.Div("Select a run from the sidebar"), create_sidebar()
 
-    # Determine which item was clicked
-    clicked_idx = n_clicks_list.index(max(n_clicks_list))
+    clicked_idx = triggered["index"]
     run_name = list(RUN_DATA.keys())[clicked_idx]
     run_data = RUN_DATA[run_name]
 
@@ -203,9 +232,30 @@ def run_dashboard(port=8050):
 # Assuming 'app' is your dash.Dash instance
 server = app.server  # Flask server
 
-@server.route("/dask_report/<run_name>/<path:filename>")
-def serve_dask_report(run_name, filename):
+@server.route("/file/<run_name>/<path:filename>")
+def serve_file(run_name, filename):
     run_dir = ROOT_DIR / run_name
     # Make sure to sanitize filename for safety in production
     return send_from_directory(run_dir, filename)
+
+@server.route("/tuna_web/<path:filename>")
+def tuna_static(filename):
+    return send_from_directory(TUNA_WEB_DIR, filename)
+
+@server.route("/flamegraph/<run_name>/<path:filename>")
+def serve_flamegraph(run_name, filename):
+    run_dir = ROOT_DIR / run_name
+    prof_file = run_dir / filename
+
+    if not prof_file.exists():
+        return "File not found", 404
+
+    # Read Tuna data and render HTML
+    data = read(str(prof_file))
+    html_content = render(data, prof_file.name)
+
+    html_content = re.sub(r'src="static/(.*?)"', r'src="/tuna_web/static/\1"', html_content)
+    html_content = re.sub(r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content)
+
+    return Response(html_content, mimetype="text/html")
 
