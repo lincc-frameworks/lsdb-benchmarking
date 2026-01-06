@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 ROOT_DIR_ENV_VAR = "LBENCH_ROOT"
-CURRENT_DIR_ENV_VAR = "LBENCH_CURRENT_DIR"
 
 def get_lbench_root_dir() -> Path:
     """

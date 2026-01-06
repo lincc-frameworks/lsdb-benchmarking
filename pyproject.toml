@@ -19,4 +19,4 @@ build-backend = "setuptools.build_meta"
 lbench = "lbench.cli.lbench:app"
 
 [project.entry-points.pytest11]
-yourpkg-bench = "lbench.pytest.plugin"
+lbench = "lbench.pytest"

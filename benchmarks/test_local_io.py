@@ -2,6 +2,7 @@ import hats.io.paths
 import lsdb
 import nested_pandas as npd
 import pandas as pd
+import pytest
 
 
 def test_local_catalog_partition_read(
@@ -42,6 +43,7 @@ def test_local_catalog_pd_read(gaia_collection_path, benchmark):
     benchmark(load_partition_pd)
 
 
+@pytest.mark.benchmark(min_rounds=1)
 def test_local_catalog_multi_partition_read(
     gaia_collection_path, dask_benchmark
 ):
@@ -55,6 +57,7 @@ def test_local_catalog_multi_partition_read(
     dask_benchmark(load_partitions)
 
 
+@pytest.mark.benchmark(min_rounds=1)
 def test_local_catalog_multi_partition_npd_read(gaia_collection_path, benchmark):
     gaia = lsdb.read_hats(gaia_collection_path)
     n_partitions = 10

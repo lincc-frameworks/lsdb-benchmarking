@@ -1,67 +1,57 @@
-import cProfile
-import os
-import uuid
-from pathlib import Path
+from __future__ import annotations
+
+from datetime import datetime
+
 import pytest
-from pytest import fixture
-from distributed import Client, get_task_stream, performance_report
+
+from lbench.cli.env import get_lbench_root_dir
 
 
-
-from lbench.cli.env import CURRENT_DIR_ENV_VAR
-
-
-@fixture
-def single_thread_dask_client():
-    with Client(n_workers=1, threads_per_worker=1) as client:
-        yield client
-
-
-@fixture(scope="session")
-def benchmark_results_dir() -> Path:
-    path = os.environ.get(CURRENT_DIR_ENV_VAR)
-    if not path:
-        pytest.fail(f"{CURRENT_DIR_ENV_VAR} not set — run via `lbench`")
-    return Path(path)
+def pytest_addoption(parser):
+    group = parser.getgroup("lbench")
+    group.addoption(
+        "--lbench",
+        action="store_true",
+        help="Run benchmarks using lbench runner",
+    )
+    group.addoption(
+        "--lbench-root",
+        action="store",
+        default=None,
+        help="Root directory for lbench runs",
+    )
 
 
-@fixture
-def lbench(benchmark_results_dir: Path, benchmark):
-    def lbench_benchmark_func(func, *args, **kwargs):
-        benchmark(func, *args, **kwargs)
+def pytest_configure(config: pytest.Config):
+    if not config.getoption("--lbench"):
+        return
 
-        cprof_uuid = str(uuid.uuid4())
-        cprof_output_path = benchmark_results_dir / f"cprofile_{cprof_uuid}.prof"
+    root = config.getoption("--lbench-root")
+    if root is None:
+        root = get_lbench_root_dir()
 
-        with cProfile.Profile() as pr:
-            func(*args, **kwargs)
-        pr.dump_stats(cprof_output_path)
+    run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_dir = root / run_id
+    run_dir.mkdir(parents=True, exist_ok=False)
 
-        benchmark.extra_info["cprofile_path"] = str(cprof_output_path)
+    # stash on config for fixtures
+    config.lbench_run_dir = run_dir
 
-    return lbench_benchmark_func
+    # configure pytest-benchmark
+    config.option.benchmark_only = True
+    config.option.benchmark_json = (run_dir / "pytest-benchmark.json").open("wb") # kinda hacky
+
+    terminal = config.pluginmanager.get_plugin("terminalreporter")
+    if terminal:
+        terminal.write_line(f"[lbench] running benchmarks in {run_dir}")
 
 
-@fixture
-def dask_benchmark(lbench, benchmark, single_thread_dask_client: Client, benchmark_results_dir: Path):
-    def dask_benchmark_func(func, *args, **kwargs):
-        lbench(func, *args, **kwargs)
-        extra_metrics = {}
-        with get_task_stream(single_thread_dask_client) as ts:
-            func(*args, **kwargs)
-        # ts is now a TaskStream object
-        extra_metrics["n_tasks"] = len(ts.data)  # number of tasks executed
-        extra_metrics["keys"] = [t["key"] for t in ts.data]
-        extra_metrics["startstops"] = [t["startstops"] for t in ts.data]
+def pytest_sessionstart(session):
+    if not session.config.getoption("--lbench"):
+        return
 
-        report_uuid = str(uuid.uuid4())
-        performance_report_path = benchmark_results_dir / f"dask_performance_report_{report_uuid}.html"
-
-        with performance_report(filename=performance_report_path):
-            func(*args, **kwargs)
-
-        extra_metrics["performance_report"] = str(performance_report_path)
-
-        benchmark.extra_info["dask"] = extra_metrics
-
-    return dask_benchmark_func
+    if not session.config.pluginmanager.hasplugin("benchmark"):
+        pytest.exit(
+            "pytest-benchmark is required for --lbench",
+            returncode=2,
+        )

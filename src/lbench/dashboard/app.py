@@ -126,6 +126,8 @@ def benchmark_to_table(bm, run_name):
         ),
     ]
 
+    buttons = []
+
     if dask_table is not None:
         card_children.append(
             dbc.CardBody([
@@ -140,23 +142,21 @@ def benchmark_to_table(bm, run_name):
                 dbc.Table.from_dataframe(total_time_table, striped=True, bordered=True, hover=True),
             ])
         )
+    if dask_report_button is not None:
+        buttons.append(dask_report_button)
+    if flamegraph_button is not None:
+        buttons.append(flamegraph_button)
 
-        buttons = []
-        if dask_report_button is not None:
-            buttons.append(dask_report_button)
-        if flamegraph_button is not None:
-            buttons.append(flamegraph_button)
-
-        if len(buttons) > 0:
-            card_children.append(
-                dbc.CardBody(
-                    html.Div(
-                        buttons,
-                        className="btn-group mt-2",
-                    ),
-                    className="text-end",
-                )
+    if len(buttons) > 0:
+        card_children.append(
+            dbc.CardBody(
+                html.Div(
+                    buttons,
+                    className="btn-group mt-2",
+                ),
+                className="text-end",
             )
+        )
 
     return dbc.Card(card_children, className="mb-3")
 
