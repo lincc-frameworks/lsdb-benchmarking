@@ -3,7 +3,7 @@ import os
 import re
 from pathlib import Path
 import dash
-from dash import html, Input, Output
+from dash import html, Input, Output, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
 
@@ -41,19 +41,26 @@ def load_all_runs(root_dir):
                 runs[p.name] = data
     return dict(sorted(runs.items(), reverse=True))
 
-RUN_DATA = load_all_runs(ROOT_DIR)
 
 # --- Helper to create a table for a benchmark ---
+def fmt(val, digits=3):
+    if val is None:
+        return "-"
+    if isinstance(val, float):
+        return f"{val:.{digits}f}"
+    return str(val)
+
 def benchmark_to_table(bm, run_name):
     stats = bm.get("stats", {})
+    # Round values and add units to headings
     df = pd.DataFrame({
-        "min": [stats.get("min")],
-        "max": [stats.get("max")],
-        "mean": [stats.get("mean")],
-        "stddev": [stats.get("stddev")],
-        "total_time": [stats.get("total")],
-        "rounds": [stats.get("rounds")],
-        "iterations": [stats.get("iterations")]
+        "min (s)": [fmt(stats.get("min"))],
+        "max (s)": [fmt(stats.get("max"))],
+        "mean (s)": [fmt(stats.get("mean"))],
+        "stddev (s)": [fmt(stats.get("stddev"))],
+        "total_time (s)": [fmt(stats.get("total"))],
+        "rounds": [fmt(stats.get("rounds"), 0)],
+        "iterations": [fmt(stats.get("iterations"), 0)]
     })
 
     dask_table = None
@@ -81,8 +88,8 @@ def benchmark_to_table(bm, run_name):
                 total_time_by_key[k] = total_time_by_key.get(k, 0) + t
 
             dask_table = pd.DataFrame({
-                "n_tasks": [n_tasks],
-                "total_dask_time": [total_dask_time],
+                "n_tasks": [fmt(n_tasks, 0)],
+                "total_dask_time (s)": [fmt(total_dask_time)],
             })
 
             sorted_key_times = sorted(
@@ -93,7 +100,7 @@ def benchmark_to_table(bm, run_name):
 
             total_time_table = pd.DataFrame({
                 "task_key": [k for k, _ in sorted_key_times],
-                "total_time": [t for _, t in sorted_key_times],
+                "total_time (s)": [fmt(t) for _, t in sorted_key_times],
             })
 
             # --- Dask report button ---
@@ -173,7 +180,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 app.title = "lbench Dashboard"
 
 # Layout with sidebar as a clickable list
-def create_sidebar(active_run=None):
+def create_sidebar(run_data, active_run=None):
     return dbc.ListGroup(
         [
             dbc.ListGroupItem(
@@ -182,49 +189,54 @@ def create_sidebar(active_run=None):
                 action=True,
                 active=(r == active_run)
             )
-            for i, r in enumerate(RUN_DATA.keys())
+            for i, r in enumerate(run_data.keys())
         ],
         id="run-list"
     )
 
-app.layout = dbc.Container([
-    dbc.Row([
-        # Sidebar
-        dbc.Col([
-            html.H4("Benchmark Runs"),
-            html.Div(id="sidebar-container", children=create_sidebar())
-        ], width=3, style={"borderRight": "1px solid #ccc", "height": "100vh", "overflowY": "auto"}),
+def initial_layout():
+    run_data = load_all_runs(ROOT_DIR)
+    return dbc.Container([
+        dcc.Store(id="run-data-store", data=run_data),
+        dbc.Row([
+            # Sidebar
+            dbc.Col([
+                html.H4("Benchmark Runs"),
+                html.Div(id="sidebar-container", children=create_sidebar(run_data))
+            ], width=3, style={"borderRight": "1px solid #ccc", "height": "100vh", "overflowY": "auto", "paddingTop": "20px"}),
 
-        # Main content
-        dbc.Col([
-            html.Div(id="benchmark-tables-container")
-        ], width=9, style={"padding": "20px", "overflowY": "auto", "height": "100vh"})
-    ])
-], fluid=True)
+            # Main content
+            dbc.Col([
+                html.Div(id="benchmark-tables-container")
+            ], width=9, style={"padding": "20px", "overflowY": "auto", "height": "100vh"})
+        ])
+    ], fluid=True)
+
+app.layout = initial_layout  # assign the function, not the result, so it's rerun on each page reload
 
 # --- Callback to update benchmark tables and highlight selected run ---
 @app.callback(
     Output("benchmark-tables-container", "children"),
     Output("sidebar-container", "children"),
     Input({"type": "run-item", "index": dash.ALL}, "n_clicks"),
+    Input("run-data-store", "data"),
 )
-def update_benchmarks_and_sidebar(n_clicks_list):
-    # Find which item was clicked using ctx.triggered
-    triggered = dash.ctx.triggered_id  # this is the dict {"type": "run-item", "index": i}
-
-    if not triggered:
+def update_benchmarks_and_sidebar(n_clicks_list, run_data):
+    ctx = dash.ctx
+    triggered = ctx.triggered_id  # This is the dict {"type": "run-item", "index": i} or None
+    if not run_data or not isinstance(run_data, dict):
+        return html.Div("No run data found"), create_sidebar({})
+    if not triggered or triggered == "run-data-store":
         # No click yet
-        return html.Div("Select a run from the sidebar"), create_sidebar()
-
-    clicked_idx = triggered["index"]
-    run_name = list(RUN_DATA.keys())[clicked_idx]
-    run_data = RUN_DATA[run_name]
-
-    # Update sidebar to highlight selected run
-    sidebar = create_sidebar(active_run=run_name)
-    tables = benchmarks_to_tables(run_name, run_data)
-
-    return tables, sidebar
+        return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
+    # Use triggered index directly
+    if isinstance(triggered, dict) and "index" in triggered:
+        idx = triggered["index"]
+        run_name = list(run_data.keys())[idx]
+        sidebar = create_sidebar(run_data, active_run=run_name)
+        tables = benchmarks_to_tables(run_name, run_data[run_name])
+        return tables, sidebar
+    return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
 def run_dashboard(port=8050):
     app.run(debug=True, port=port)
@@ -258,4 +270,3 @@ def serve_flamegraph(run_name, filename):
     html_content = re.sub(r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content)
 
     return Response(html_content, mimetype="text/html")
-
