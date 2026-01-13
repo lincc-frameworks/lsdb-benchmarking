@@ -43,25 +43,47 @@ def load_all_runs(root_dir):
 
 
 # --- Helper to create a table for a benchmark ---
-def fmt(val, digits=3):
-    if val is None:
-        return "-"
-    if isinstance(val, float):
-        return f"{val:.{digits}f}"
-    return str(val)
+def format_duration(seconds, digits=3):
+    """
+    Format a duration in seconds using the most appropriate unit.
+    Returns (value_str, unit).
+    """
+    if seconds is None:
+        return "-", ""
+
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        return str(seconds), ""
+    
+    if seconds >= 1:
+        return f"{seconds:.{digits}f}", "s"
+    elif seconds >= 1e-3:
+        return f"{seconds * 1e3:.{digits}f}", "ms"
+    elif seconds >= 1e-6:
+        return f"{seconds * 1e6:.{digits}f}", "µs"
+    else:
+        return f"{seconds * 1e9:.{digits}f}", "ns"
+
 
 def benchmark_to_table(bm, run_name):
     stats = bm.get("stats", {})
     # Round values and add units to headings
-    df = pd.DataFrame({
-        "min (s)": [fmt(stats.get("min"))],
-        "max (s)": [fmt(stats.get("max"))],
-        "mean (s)": [fmt(stats.get("mean"))],
-        "stddev (s)": [fmt(stats.get("stddev"))],
-        "total_time (s)": [fmt(stats.get("total"))],
-        "rounds": [fmt(stats.get("rounds"), 0)],
-        "iterations": [fmt(stats.get("iterations"), 0)]
-    })
+    min_v, min_u = format_duration(stats.get("min"))
+    max_v, max_u = format_duration(stats.get("max"))
+    mean_v, mean_u = format_duration(stats.get("mean"))
+    std_v, std_u = format_duration(stats.get("stddev"))
+
+    df = pd.DataFrame(
+        {
+            f"min ({min_u})": [min_v],
+            f"max ({max_u})": [max_v],
+            f"mean ({mean_u})": [mean_v],
+            f"stddev ({std_u})": [std_v],
+            "rounds": [stats.get("rounds")],
+            "iterations": [stats.get("iterations")],
+        }
+    )
 
     dask_table = None
     total_time_table = None
@@ -87,9 +109,11 @@ def benchmark_to_table(bm, run_name):
             for k, t in zip(keys, times):
                 total_time_by_key[k] = total_time_by_key.get(k, 0) + t
 
+            total_time_fmt, total_time_u = format_duration(total_dask_time)
+
             dask_table = pd.DataFrame({
-                "n_tasks": [fmt(n_tasks, 0)],
-                "total_dask_time (s)": [fmt(total_dask_time)],
+                "n_tasks": [n_tasks],
+                f"total_dask_time ({total_time_u})": [total_time_fmt],
             })
 
             sorted_key_times = sorted(
@@ -98,9 +122,11 @@ def benchmark_to_table(bm, run_name):
                 reverse=True
             )
 
+            formatted_times = [format_duration(t) for _, t in sorted_key_times]
+
             total_time_table = pd.DataFrame({
                 "task_key": [k for k, _ in sorted_key_times],
-                "total_time (s)": [fmt(t) for _, t in sorted_key_times],
+                "total_time": [f"{v} {u}" for v, u in formatted_times],
             })
 
             # --- Dask report button ---
