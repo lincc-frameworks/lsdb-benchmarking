@@ -14,9 +14,9 @@ def single_thread_dask_client():
 
 @fixture(scope="session")
 def benchmark_results_dir(pytestconfig) -> Path:
-    path = pytestconfig.lbench_run_dir
-    if not path:
+    if not hasattr(pytestconfig, "lbench_run_dir"):
         pytest.fail("lbench_run_dir not set — run pytest with `--lbench` option")
+    path = pytestconfig.lbench_run_dir
     return Path(path)
 
 

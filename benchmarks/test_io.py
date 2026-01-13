@@ -1,3 +1,22 @@
+import pytest
+
+
+COLUMN_CONFIGS = [
+    ["id", "ra", "dec"],
+    ["id", "ra", "dec", "phot_g_mean_mag"],
+]
+
+
+@pytest.mark.parametrize(
+    "columns",
+    COLUMN_CONFIGS,
+    ids=["basic", "with_mag"]
+)
+@pytest.mark.parametrize(
+    "io_method",
+    ["local", "s3"],
+    ids=["local", "s3"]
+)
 class TestLsdbIO:
     def test_pyarrow_single_partition(self, columns, io_method, lbench, helpers):
         dataset = helpers.get_pyarrow_dataset(io_method)

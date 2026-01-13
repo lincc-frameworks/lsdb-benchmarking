@@ -113,7 +113,7 @@ def benchmark_to_table(bm, run_name):
 
             dask_table = pd.DataFrame({
                 "n_tasks": [n_tasks],
-                f"total_dask_time ({total_time_u})": [total_time_fmt],
+                f"total dask time ({total_time_u})": [total_time_fmt],
             })
 
             sorted_key_times = sorted(
@@ -126,7 +126,7 @@ def benchmark_to_table(bm, run_name):
 
             total_time_table = pd.DataFrame({
                 "task_key": [k for k, _ in sorted_key_times],
-                "total_time": [f"{v} {u}" for v, u in formatted_times],
+                "total time": [f"{v} {u}" for v, u in formatted_times],
             })
 
             # --- Dask report button ---
