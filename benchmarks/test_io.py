@@ -16,8 +16,8 @@ COLUMN_CONFIGS = [
 )
 @pytest.mark.parametrize(
     "io_method",
-    ["s3"],
-    ids=["s3"]
+    ["s3", "local"],
+    ids=["s3", "local"]
 )
 class TestLsdbIO:
     def test_pyarrow_single_partition(self, columns, io_method, lbench, helpers):
