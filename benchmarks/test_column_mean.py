@@ -29,7 +29,7 @@ def test_pyarrow_mean(gaia_collection_path, lbench):
 
     lbench(dataset_mean, pyarrow_ds, "phot_g_mean_mag")
 
-def test_lsdb_mean(gaia_collection_path, lbench):
+def test_lsdb_mean(gaia_collection_path, lbench_dask):
     def catalog_mean(df, target_column=''):
         result = npd.NestedFrame({
             "sum": [df[target_column].sum()],
@@ -37,11 +37,12 @@ def test_lsdb_mean(gaia_collection_path, lbench):
         })
         return result
 
-    # ...
     lsdb_gaia = lsdb.open_catalog(gaia_collection_path, columns=['phot_g_mean_mag'])
     unrealized = lsdb_gaia.map_partitions(
         catalog_mean,
         target_column="phot_g_mean_mag",
     )
 
-    result = unrealized.compute()
+    def compute_mean():
+        result = unrealized.compute()
+    lbench_dask(compute_mean)

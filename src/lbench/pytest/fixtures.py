@@ -38,7 +38,7 @@ def lbench(benchmark_results_dir: Path, benchmark):
 
 
 @fixture
-def dask_benchmark(lbench, benchmark, single_thread_dask_client: Client, benchmark_results_dir: Path):
+def lbench_dask(lbench, benchmark, single_thread_dask_client: Client, benchmark_results_dir: Path):
     def dask_benchmark_func(func, *args, **kwargs):
         lbench(func, *args, **kwargs)
         extra_metrics = {}

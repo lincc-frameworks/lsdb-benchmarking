@@ -23,22 +23,22 @@ def gaia_local_metadata_path(gaia_local_catalog_path) -> UPath:
     return gaia_local_catalog_path / "dataset" / "_metadata"
 
 
-@fixture
+@fixture(scope="session")
 def gaia_s3_collection_path() -> UPath:
     return UPath("s3://stpubdata/gaia/gaia_dr3/public/hats")
 
-@fixture
+@fixture(scope="session")
 def gaia_s3_catalog_path(gaia_s3_collection_path) -> UPath:
     return gaia_s3_collection_path / "gaia"
 
-@fixture
+@fixture(scope="session")
 def gaia_s3_metadata_path(gaia_s3_catalog_path) -> UPath:
     return gaia_s3_catalog_path / "dataset" / "_metadata"
 
-@fixture
+@fixture(scope="session")
 def gaia_s3_dataset(gaia_s3_metadata_path) -> pyarrow.dataset.Dataset:
     return pyarrow.dataset.parquet_dataset(
-        gaia_s3_metadata_path,
+        gaia_s3_metadata_path.path,
         partitioning="hive",
         filesystem=pa.fs.S3FileSystem(),
     )
@@ -75,11 +75,12 @@ def helpers(request):
                 raise ValueError(f"Unsupported IO method: {io_method}")
 
         @staticmethod
-        def get_lsdb_catalog(io_method):
+        def get_lsdb_catalog(io_method, **kwargs):
             if io_method == "s3":
-                return request.getfixturevalue("gaia_s3_catalog")
+                path = request.getfixturevalue("gaia_s3_catalog_path")
             elif io_method == "local":
-                return request.getfixturevalue("gaia_local_catalog")
+                path = request.getfixturevalue("gaia_local_catalog_path")
             else:
                 raise ValueError(f"Unsupported IO method: {io_method}")
+            return lsdb.open_catalog(path.as_uri(), **kwargs)
     return Helpers()
