@@ -291,6 +291,7 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
         If None, will attempt to auto-detect from environment variables.
     """
     proxy = None
+    use_https = False
 
     # Auto-detect or construct Jupyter proxy URL
     if jupyter_server_url is None:
@@ -310,8 +311,13 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
     if jupyter_server_url:
         # Remove trailing slash
         jupyter_server_url = jupyter_server_url.rstrip('/')
+
+        # Check if using HTTPS
+        use_https = jupyter_server_url.startswith('https')
+        protocol = 'https' if use_https else 'http'
+
         # Dash proxy format: where it's served from :: where it's proxied to
-        proxy = f'{jupyter_server_url}/proxy/{port}::http://127.0.0.1:{port}'
+        proxy = f'{jupyter_server_url}/proxy/{port}::{protocol}://127.0.0.1:{port}'
 
     app.run(debug=True, port=port, mode=mode, height=height, proxy=proxy)
 
