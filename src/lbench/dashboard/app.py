@@ -2,14 +2,6 @@ import json
 import os
 import re
 from pathlib import Path
-
-try:
-    from jupyter_dash import JupyterDash
-
-    JUPYTER_AVAILABLE = True
-except ImportError:
-    JUPYTER_AVAILABLE = False
-
 import dash
 from dash import html, Input, Output, dcc
 import dash_bootstrap_components as dbc
@@ -212,11 +204,7 @@ def benchmarks_to_tables(run_name, run_data):
 
 
 # --- Dash app ---
-# Use JupyterDash if available, otherwise regular Dash
-if JUPYTER_AVAILABLE:
-    app = JupyterDash(__name__, external_stylesheets=[dbc.themes.FLATLY])
-else:
-    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 app.title = "lbench Dashboard"
 
 
@@ -283,18 +271,6 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
         return tables, sidebar
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
-
-def _is_in_jupyter():
-    """Check if code is running in a Jupyter notebook."""
-    try:
-        from IPython import get_ipython
-        if get_ipython() is None:
-            return False
-        return 'IPKernelApp' in get_ipython().config
-    except (ImportError, AttributeError):
-        return False
-
-
 def run_dashboard(port=8050, mode='external', height=800):
     """
     Run the dashboard.
@@ -304,17 +280,14 @@ def run_dashboard(port=8050, mode='external', height=800):
     port : int
         Port to run the server on (default: 8050)
     mode : str
-        Display mode when running in Jupyter. Options:
+        Display mode. Options:
         - 'external': Opens in a new browser tab (default)
-        - 'inline': Embeds directly in the notebook
-        - 'jupyterlab': Opens in JupyterLab
+        - 'inline': Embeds directly in Jupyter notebook
+        - 'jupyterlab': Opens in JupyterLab tab
     height : int
         Height of inline display in pixels (default: 800)
     """
-    if JUPYTER_AVAILABLE and _is_in_jupyter():
-        app.run_server(mode=mode, debug=True, port=port, height=height)
-    else:
-        app.run(debug=True, port=port)
+    app.run(debug=True, port=port, mode=mode, height=height)
 
 
 # Assuming 'app' is your dash.Dash instance
