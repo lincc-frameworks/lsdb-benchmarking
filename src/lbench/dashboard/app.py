@@ -276,6 +276,39 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
 
+def _create_app_with_prefix(prefix='/'):
+    """Create a new Dash app instance with the specified URL prefix."""
+    new_app = dash.Dash(
+        __name__,
+        external_stylesheets=[dbc.themes.FLATLY],
+        url_base_pathname=prefix,
+        requests_pathname_prefix=prefix,
+        routes_pathname_prefix=prefix
+    )
+    new_app.title = "lbench Dashboard"
+
+    # Copy layout and callbacks from the original app
+    new_app.layout = app.layout
+    new_app.callback_map = app.callback_map
+    new_app._callback_list = app._callback_list
+
+    # Copy Flask routes
+    for rule in app.server.url_map.iter_rules():
+        if rule.endpoint not in ['static', 'serve_file', 'tuna_static', 'serve_flamegraph', 'add_security_headers']:
+            continue
+        try:
+            view_func = app.server.view_functions[rule.endpoint]
+            new_app.server.add_url_rule(
+                rule.rule,
+                endpoint=rule.endpoint,
+                view_func=view_func,
+                methods=rule.methods
+            )
+        except:
+            pass
+
+    return new_app
+
 def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server_url=None):
     """
     Run the dashboard.
@@ -327,17 +360,49 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
             display(
                 HTML(f'<a href="{url}" target="_blank">Click here to open the dashboard in a new tab</a>'))
 
-        # Use proxy parameter to tell Dash about the Jupyter proxy setup
-        # Format: public_url::local_url
-        proxy = f'{jupyter_server_url}/proxy/{port}::http://127.0.0.1:{port}'
+        # Create a new app instance with the correct path prefix for Jupyter proxy
+        jupyter_app = _create_app_with_prefix(f'/proxy/{port}/')
 
-        app.run(
-            debug=False,  # Disable debug in Jupyter to reduce output
-            host='127.0.0.1',
-            jupyter_mode=jupyter_mode,
-            port=port,
-            proxy=proxy
-        )
+        # Re-register custom Flask routes
+        @jupyter_app.server.route("/file/<run_name>/<path:filename>")
+        def serve_file(run_name, filename):
+            run_dir = ROOT_DIR / run_name
+            return send_from_directory(run_dir, filename)
+
+        @jupyter_app.server.route("/tuna_web/<path:filename>")
+        def tuna_static(filename):
+            return send_from_directory(TUNA_WEB_DIR, filename)
+
+        @jupyter_app.server.route("/flamegraph/<run_name>/<path:filename>")
+        def serve_flamegraph(run_name, filename):
+            run_dir = ROOT_DIR / run_name
+            prof_file = run_dir / filename
+            if not prof_file.exists():
+                return "File not found", 404
+            data = read(str(prof_file))
+            html_content = render(data, prof_file.name)
+            html_content = re.sub(r'src="static/(.*?)"', r'src="/tuna_web/static/\1"', html_content)
+            html_content = re.sub(r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content)
+            return Response(html_content, mimetype="text/html")
+
+        # Start server in background
+        import threading
+        def run_server():
+            jupyter_app.run_server(
+                debug=False,
+                host='127.0.0.1',
+                port=port,
+                use_reloader=False,
+                dev_tools_props_check=False
+            )
+
+        thread = threading.Thread(target=run_server, daemon=True)
+        thread.start()
+
+        # Give server time to start
+        import time
+        time.sleep(2)
+        print("Server started! Click the link above to access the dashboard.")
     else:
         # For command line or local environments
         app.run(debug=True, port=port, jupyter_mode=jupyter_mode, height=height)
