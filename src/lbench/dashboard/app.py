@@ -290,10 +290,7 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
         Base URL for Jupyter server (e.g., 'https://usdf-rsp.slac.stanford.edu/nb/user/smcgui').
         If None, will attempt to auto-detect from environment variables.
     """
-    proxy = None
-    use_https = False
-
-    # Auto-detect or construct Jupyter proxy URL
+    # Auto-detect Jupyter server URL
     if jupyter_server_url is None:
         try:
             import os
@@ -302,34 +299,24 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
                 # Try to get the full base URL
                 jupyter_server_url = os.environ.get('JUPYTERHUB_BASE_URL', '')
                 if not jupyter_server_url.startswith('http'):
-                    # Can't auto-detect full URL, skip proxy
+                    # Can't auto-detect full URL, skip
                     jupyter_server_url = None
         except Exception:
             pass
 
-    # Construct proxy string in Dash format: served_url::proxied_url
+    # For Jupyter environments, pass the server URL directly
     if jupyter_server_url:
-        # Remove trailing slash
         jupyter_server_url = jupyter_server_url.rstrip('/')
-
-        # Check if using HTTPS
-        if jupyter_server_url.startswith('https'):
-            # For HTTPS Jupyter servers, use requests_pathname_prefix instead
-            # This tells Dash the app is served from a subpath
-            app.config.update({
-                'requests_pathname_prefix': f'/proxy/{port}/',
-            })
-            # Use jupyter_server_url parameter instead of proxy
-            app.run(
-                debug=True,
-                port=port,
-                mode=mode,
-                height=height,
-                jupyter_server_url=jupyter_server_url
-            )
-            return
-
-    app.run(debug=True, port=port, mode=mode, height=height, proxy=proxy)
+        app.run(
+            debug=True,
+            port=port,
+            mode=mode,
+            height=height,
+            jupyter_server_url=jupyter_server_url
+        )
+    else:
+        # For command line or local environments
+        app.run(debug=True, port=port, mode=mode, height=height)
 
 
 # Assuming 'app' is your dash.Dash instance
