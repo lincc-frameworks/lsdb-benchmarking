@@ -272,7 +272,7 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
 
-def run_dashboard(port=8050, jupyter_mode='inline', height=800, jupyter_server_url=None):
+def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server_url=None):
     """
     Run the dashboard.
 
@@ -282,14 +282,19 @@ def run_dashboard(port=8050, jupyter_mode='inline', height=800, jupyter_server_u
         Port to run the server on (default: 8050)
     jupyter_mode : str
         Display mode. Options:
-        - 'inline': Embeds directly in Jupyter notebook (default)
-        - 'external': Opens in a new browser tab
+        - 'external': Opens in a new browser tab (default, recommended for JupyterHub)
+        - 'inline': Embeds directly in Jupyter notebook (may fail with strict CSP)
         - 'jupyterlab': Opens in JupyterLab tab
     height : int
         Height of inline display in pixels (default: 800)
     jupyter_server_url : str, optional
         Base URL for Jupyter server (e.g., 'https://usdf-rsp.slac.stanford.edu/nb/user/smcgui').
         If None, will attempt to auto-detect from environment variables.
+
+    Notes
+    -----
+    For JupyterHub with strict Content Security Policy (CSP), 'external' mode is
+    recommended as it opens the dashboard in a new tab instead of embedding inline.
     """
     # Auto-detect Jupyter server URL
     if jupyter_server_url is None:
@@ -308,8 +313,17 @@ def run_dashboard(port=8050, jupyter_mode='inline', height=800, jupyter_server_u
     # For Jupyter environments, pass the server URL directly
     if jupyter_server_url:
         jupyter_server_url = jupyter_server_url.rstrip('/')
+
+        # Display the URL explicitly for external mode
+        if jupyter_mode == 'external':
+            from IPython.display import display, HTML
+            url = f'{jupyter_server_url}/proxy/{port}/'
+            print(f"Dashboard starting on port {port}...")
+            print(f"Access at: {url}")
+            display(HTML(f'<a href="{url}" target="_blank">Click here to open the dashboard in a new tab</a>'))
+
         app.run(
-            debug=True,
+            debug=False,  # Disable debug in Jupyter to reduce output
             port=port,
             jupyter_mode=jupyter_mode,
             height=height,
