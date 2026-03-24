@@ -271,7 +271,7 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
         return tables, sidebar
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
-def run_dashboard(port=8050, mode='external', height=800):
+def run_dashboard(port=8050, mode='inline', height=800, proxy=None):
     """
     Run the dashboard.
 
@@ -281,13 +281,34 @@ def run_dashboard(port=8050, mode='external', height=800):
         Port to run the server on (default: 8050)
     mode : str
         Display mode. Options:
-        - 'external': Opens in a new browser tab (default)
-        - 'inline': Embeds directly in Jupyter notebook
+        - 'inline': Embeds directly in Jupyter notebook (default)
+        - 'external': Opens in a new browser tab
         - 'jupyterlab': Opens in JupyterLab tab
     height : int
         Height of inline display in pixels (default: 800)
+    proxy : str, optional
+        Proxy URL for Jupyter environments. If None, will attempt to auto-detect.
+        For JupyterHub: 'https://your-server.com/user/{JUPYTERHUB_USER}/proxy/{port}/'
     """
-    app.run(debug=True, port=port, mode=mode, height=height)
+    # Auto-detect Jupyter proxy URL if not provided
+    if proxy is None:
+        try:
+            import os
+            jupyter_server = os.environ.get('JUPYTERHUB_SERVICE_PREFIX')
+            if jupyter_server:
+                # Remove trailing slash if present
+                jupyter_server = jupyter_server.rstrip('/')
+                # Get the base URL (everything before /user/)
+                if 'JUPYTERHUB_BASE_URL' in os.environ:
+                    base_url = os.environ['JUPYTERHUB_BASE_URL'].rstrip('/')
+                    proxy = f'{base_url}{jupyter_server}/proxy/{{port}}/'
+                else:
+                    # Fallback: construct from service prefix
+                    proxy = f'{jupyter_server}/proxy/{{port}}/'
+        except Exception:
+            pass
+
+    app.run(debug=True, port=port, mode=mode, height=height, proxy=proxy)
 
 
 # Assuming 'app' is your dash.Dash instance
