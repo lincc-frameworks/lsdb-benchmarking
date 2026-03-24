@@ -322,6 +322,17 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
 # Assuming 'app' is your dash.Dash instance
 server = app.server  # Flask server
 
+# Middleware to handle CSP for Jupyter iframe embedding
+@server.after_request
+def add_security_headers(response):
+    # Allow embedding in Jupyter notebooks
+    # Remove restrictive CSP that blocks iframe embedding
+    if 'Content-Security-Policy' in response.headers:
+        csp = response.headers['Content-Security-Policy']
+        # Allow frame-ancestors for Jupyter environments
+        if 'frame-ancestors' not in csp:
+            response.headers['Content-Security-Policy'] = csp + "; frame-ancestors *"
+    return response
 
 @server.route("/file/<run_name>/<path:filename>")
 def serve_file(run_name, filename):
