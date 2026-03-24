@@ -281,7 +281,6 @@ def _create_app_with_prefix(prefix='/'):
     new_app = dash.Dash(
         __name__,
         external_stylesheets=[dbc.themes.FLATLY],
-        url_base_pathname=prefix,
         requests_pathname_prefix=prefix,
         routes_pathname_prefix=prefix
     )
@@ -291,21 +290,6 @@ def _create_app_with_prefix(prefix='/'):
     new_app.layout = app.layout
     new_app.callback_map = app.callback_map
     new_app._callback_list = app._callback_list
-
-    # Copy Flask routes
-    for rule in app.server.url_map.iter_rules():
-        if rule.endpoint not in ['static', 'serve_file', 'tuna_static', 'serve_flamegraph', 'add_security_headers']:
-            continue
-        try:
-            view_func = app.server.view_functions[rule.endpoint]
-            new_app.server.add_url_rule(
-                rule.rule,
-                endpoint=rule.endpoint,
-                view_func=view_func,
-                methods=rule.methods
-            )
-        except:
-            pass
 
     return new_app
 
