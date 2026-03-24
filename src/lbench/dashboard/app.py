@@ -204,7 +204,11 @@ def benchmarks_to_tables(run_name, run_data):
 
 
 # --- Dash app ---
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.FLATLY],
+    url_base_pathname='/'
+)
 app.title = "lbench Dashboard"
 
 
@@ -320,14 +324,19 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
             url = f'{jupyter_server_url}/proxy/{port}/'
             print(f"Dashboard starting on port {port}...")
             print(f"Access at: {url}")
-            display(HTML(f'<a href="{url}" target="_blank">Click here to open the dashboard in a new tab</a>'))
+            display(
+                HTML(f'<a href="{url}" target="_blank">Click here to open the dashboard in a new tab</a>'))
+
+        # Use proxy parameter to tell Dash about the Jupyter proxy setup
+        # Format: public_url::local_url
+        proxy = f'{jupyter_server_url}/proxy/{port}::http://127.0.0.1:{port}'
 
         app.run(
             debug=False,  # Disable debug in Jupyter to reduce output
-            port=port,
+            host='127.0.0.1',
             jupyter_mode=jupyter_mode,
-            height=height,
-            jupyter_server_url=jupyter_server_url
+            port=port,
+            proxy=proxy
         )
     else:
         # For command line or local environments
