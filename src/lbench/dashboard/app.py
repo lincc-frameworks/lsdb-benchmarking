@@ -271,7 +271,8 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
         return tables, sidebar
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
-def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None):
+
+def run_dashboard(port=8050, jupyter_mode='inline', height=800, jupyter_server_url=None):
     """
     Run the dashboard.
 
@@ -279,7 +280,7 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
     ----------
     port : int
         Port to run the server on (default: 8050)
-    mode : str
+    jupyter_mode : str
         Display mode. Options:
         - 'inline': Embeds directly in Jupyter notebook (default)
         - 'external': Opens in a new browser tab
@@ -310,17 +311,18 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
         app.run(
             debug=True,
             port=port,
-            mode=mode,
+            jupyter_mode=jupyter_mode,
             height=height,
             jupyter_server_url=jupyter_server_url
         )
     else:
         # For command line or local environments
-        app.run(debug=True, port=port, mode=mode, height=height)
+        app.run(debug=True, port=port, jupyter_mode=jupyter_mode, height=height)
 
 
 # Assuming 'app' is your dash.Dash instance
 server = app.server  # Flask server
+
 
 # Middleware to handle CSP for Jupyter iframe embedding
 @server.after_request
@@ -333,6 +335,7 @@ def add_security_headers(response):
         if 'frame-ancestors' not in csp:
             response.headers['Content-Security-Policy'] = csp + "; frame-ancestors *"
     return response
+
 
 @server.route("/file/<run_name>/<path:filename>")
 def serve_file(run_name, filename):
