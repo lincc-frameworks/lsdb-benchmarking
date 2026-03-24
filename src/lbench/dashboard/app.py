@@ -2,6 +2,14 @@ import json
 import os
 import re
 from pathlib import Path
+
+try:
+    from jupyter_dash import JupyterDash
+
+    JUPYTER_AVAILABLE = True
+except ImportError:
+    JUPYTER_AVAILABLE = False
+
 import dash
 from dash import html, Input, Output, dcc
 import dash_bootstrap_components as dbc
@@ -18,6 +26,7 @@ TUNA_WEB_DIR = Path(tuna_file).parent / "web"
 # Root directory where benchmark runs are stored
 ROOT_DIR = get_lbench_root_dir()
 
+
 # --- Load and cache runs ---
 def load_run_json(run_dir):
     json_file = run_dir / "pytest-benchmark.json"
@@ -31,6 +40,7 @@ def load_run_json(run_dir):
         return data
     except json.JSONDecodeError:
         return None
+
 
 def load_all_runs(root_dir):
     runs = {}
@@ -55,7 +65,7 @@ def format_duration(seconds, digits=3):
         seconds = float(seconds)
     except (TypeError, ValueError):
         return str(seconds), ""
-    
+
     if seconds >= 1:
         return f"{seconds:.{digits}f}", "s"
     elif seconds >= 1e-3:
@@ -202,8 +212,13 @@ def benchmarks_to_tables(run_name, run_data):
 
 
 # --- Dash app ---
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+# Use JupyterDash if available, otherwise regular Dash
+if JUPYTER_AVAILABLE:
+    app = JupyterDash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+else:
+    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 app.title = "lbench Dashboard"
+
 
 # Layout with sidebar as a clickable list
 def create_sidebar(run_data, active_run=None):
@@ -220,6 +235,7 @@ def create_sidebar(run_data, active_run=None):
         id="run-list"
     )
 
+
 def initial_layout():
     run_data = load_all_runs(ROOT_DIR)
     return dbc.Container([
@@ -229,7 +245,8 @@ def initial_layout():
             dbc.Col([
                 html.H4("Benchmark Runs"),
                 html.Div(id="sidebar-container", children=create_sidebar(run_data))
-            ], width=3, style={"borderRight": "1px solid #ccc", "height": "100vh", "overflowY": "auto", "paddingTop": "20px"}),
+            ], width=3, style={"borderRight": "1px solid #ccc", "height": "100vh", "overflowY": "auto",
+                               "paddingTop": "20px"}),
 
             # Main content
             dbc.Col([
@@ -238,7 +255,9 @@ def initial_layout():
         ])
     ], fluid=True)
 
+
 app.layout = initial_layout  # assign the function, not the result, so it's rerun on each page reload
+
 
 # --- Callback to update benchmark tables and highlight selected run ---
 @app.callback(
@@ -264,11 +283,43 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
         return tables, sidebar
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
-def run_dashboard(port=8050):
-    app.run(debug=True, port=port)
+
+def _is_in_jupyter():
+    """Check if code is running in a Jupyter notebook."""
+    try:
+        from IPython import get_ipython
+        if get_ipython() is None:
+            return False
+        return 'IPKernelApp' in get_ipython().config
+    except (ImportError, AttributeError):
+        return False
+
+
+def run_dashboard(port=8050, mode='external', height=800):
+    """
+    Run the dashboard.
+
+    Parameters
+    ----------
+    port : int
+        Port to run the server on (default: 8050)
+    mode : str
+        Display mode when running in Jupyter. Options:
+        - 'external': Opens in a new browser tab (default)
+        - 'inline': Embeds directly in the notebook
+        - 'jupyterlab': Opens in JupyterLab
+    height : int
+        Height of inline display in pixels (default: 800)
+    """
+    if JUPYTER_AVAILABLE and _is_in_jupyter():
+        app.run_server(mode=mode, debug=True, port=port, height=height)
+    else:
+        app.run(debug=True, port=port)
+
 
 # Assuming 'app' is your dash.Dash instance
 server = app.server  # Flask server
+
 
 @server.route("/file/<run_name>/<path:filename>")
 def serve_file(run_name, filename):
@@ -276,15 +327,16 @@ def serve_file(run_name, filename):
     # Make sure to sanitize filename for safety in production
     return send_from_directory(run_dir, filename)
 
+
 @server.route("/tuna_web/<path:filename>")
 def tuna_static(filename):
     return send_from_directory(TUNA_WEB_DIR, filename)
+
 
 @server.route("/flamegraph/<run_name>/<path:filename>")
 def serve_flamegraph(run_name, filename):
     run_dir = ROOT_DIR / run_name
     prof_file = run_dir / filename
-
     if not prof_file.exists():
         return "File not found", 404
 

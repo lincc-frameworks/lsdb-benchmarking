@@ -9,7 +9,8 @@ def test_sleep(lbench):
 
     lbench(sleep_function)
 
-def test_dask_sleep(dask_benchmark):
+
+def test_dask_sleep(lbench_dask):
     @delayed
     def sleep_function():
         time.sleep(0.1)
@@ -17,4 +18,4 @@ def test_dask_sleep(dask_benchmark):
     def dask_sleep_function():
         sleep_function().compute()
 
-    dask_benchmark(dask_sleep_function)
+    lbench_dask(dask_sleep_function)
