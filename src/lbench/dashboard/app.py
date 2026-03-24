@@ -313,11 +313,21 @@ def run_dashboard(port=8050, mode='inline', height=800, jupyter_server_url=None)
         jupyter_server_url = jupyter_server_url.rstrip('/')
 
         # Check if using HTTPS
-        use_https = jupyter_server_url.startswith('https')
-        protocol = 'https' if use_https else 'http'
-
-        # Dash proxy format: where it's served from :: where it's proxied to
-        proxy = f'{jupyter_server_url}/proxy/{port}::{protocol}://127.0.0.1:{port}'
+        if jupyter_server_url.startswith('https'):
+            # For HTTPS Jupyter servers, use requests_pathname_prefix instead
+            # This tells Dash the app is served from a subpath
+            app.config.update({
+                'requests_pathname_prefix': f'/proxy/{port}/',
+            })
+            # Use jupyter_server_url parameter instead of proxy
+            app.run(
+                debug=True,
+                port=port,
+                mode=mode,
+                height=height,
+                jupyter_server_url=jupyter_server_url
+            )
+            return
 
     app.run(debug=True, port=port, mode=mode, height=height, proxy=proxy)
 
