@@ -372,7 +372,7 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
         # Start server in background
         import threading
         def run_server():
-            jupyter_app.run_server(
+            jupyter_app.run(
                 debug=False,
                 host='127.0.0.1',
                 port=port,
