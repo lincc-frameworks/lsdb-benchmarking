@@ -293,6 +293,7 @@ def _create_app_with_prefix(prefix='/'):
 
     return new_app
 
+
 def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server_url=None):
     """
     Run the dashboard.
@@ -375,6 +376,7 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
             jupyter_app.run(
                 debug=False,
                 host='127.0.0.1',
+                jupyter_mode=jupyter_mode,
                 port=port,
                 use_reloader=False,
                 dev_tools_props_check=False
