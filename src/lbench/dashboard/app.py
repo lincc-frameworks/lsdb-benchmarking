@@ -276,7 +276,7 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
 
-def _create_app_with_prefix(prefix='/'):
+def _create_app_with_prefix(prefix=''):
     """Create a new Dash app instance with the specified URL prefix."""
     new_app = dash.Dash(
         __name__,
