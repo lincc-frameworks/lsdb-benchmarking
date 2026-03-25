@@ -338,7 +338,7 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
     if jupyter_server_url:
         jupyter_server_url = jupyter_server_url.rstrip('/')
         url = f'{jupyter_server_url}/proxy/{port}/'
-        url_prefix = urlsplit(url).path + f"/proxy/{port}/"
+        url_prefix = urlsplit(url).path
 
         # Display the URL explicitly for external mode
         if jupyter_mode == 'external':
@@ -352,6 +352,8 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
         # Just run the app normally on localhost
 
         # Get prefix by url path and proxy
+
+        # app = _create_app_with_prefix(prefix=url_prefix)
 
         app = _create_app_with_prefix(prefix=url_prefix)
 
