@@ -345,35 +345,13 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
             display(
                 HTML(f'<a href="{url}" target="_blank">Click here to open the dashboard in a new tab</a>'))
 
-        # Create a new app instance with the correct path prefix for Jupyter proxy
-        jupyter_app = _create_app_with_prefix(f'/proxy/{port}/')
-
-        # Re-register custom Flask routes
-        @jupyter_app.server.route("/file/<run_name>/<path:filename>")
-        def serve_file(run_name, filename):
-            run_dir = ROOT_DIR / run_name
-            return send_from_directory(run_dir, filename)
-
-        @jupyter_app.server.route("/tuna_web/<path:filename>")
-        def tuna_static(filename):
-            return send_from_directory(TUNA_WEB_DIR, filename)
-
-        @jupyter_app.server.route("/flamegraph/<run_name>/<path:filename>")
-        def serve_flamegraph(run_name, filename):
-            run_dir = ROOT_DIR / run_name
-            prof_file = run_dir / filename
-            if not prof_file.exists():
-                return "File not found", 404
-            data = read(str(prof_file))
-            html_content = render(data, prof_file.name)
-            html_content = re.sub(r'src="static/(.*?)"', r'src="/tuna_web/static/\1"', html_content)
-            html_content = re.sub(r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content)
-            return Response(html_content, mimetype="text/html")
+        # Don't set any prefix - the Jupyter proxy handles routing transparently
+        # Just run the app normally on localhost
 
         # Start server in background
         import threading
         def run_server():
-            jupyter_app.run(
+            app.run(
                 debug=False,
                 host='127.0.0.1',
                 jupyter_mode=jupyter_mode,
