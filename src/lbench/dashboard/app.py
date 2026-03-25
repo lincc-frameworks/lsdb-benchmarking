@@ -18,6 +18,7 @@ TUNA_WEB_DIR = Path(tuna_file).parent / "web"
 # Root directory where benchmark runs are stored
 ROOT_DIR = get_lbench_root_dir()
 
+
 # --- Load and cache runs ---
 def load_run_json(run_dir):
     json_file = run_dir / "pytest-benchmark.json"
@@ -31,6 +32,7 @@ def load_run_json(run_dir):
         return data
     except json.JSONDecodeError:
         return None
+
 
 def load_all_runs(root_dir):
     runs = {}
@@ -55,7 +57,7 @@ def format_duration(seconds, digits=3):
         seconds = float(seconds)
     except (TypeError, ValueError):
         return str(seconds), ""
-    
+
     if seconds >= 1:
         return f"{seconds:.{digits}f}", "s"
     elif seconds >= 1e-3:
@@ -111,23 +113,25 @@ def benchmark_to_table(bm, run_name):
 
             total_time_fmt, total_time_u = format_duration(total_dask_time)
 
-            dask_table = pd.DataFrame({
-                "n_tasks": [n_tasks],
-                f"total dask time ({total_time_u})": [total_time_fmt],
-            })
+            dask_table = pd.DataFrame(
+                {
+                    "n_tasks": [n_tasks],
+                    f"total dask time ({total_time_u})": [total_time_fmt],
+                }
+            )
 
             sorted_key_times = sorted(
-                total_time_by_key.items(),
-                key=lambda x: x[1],
-                reverse=True
+                total_time_by_key.items(), key=lambda x: x[1], reverse=True
             )
 
             formatted_times = [format_duration(t) for _, t in sorted_key_times]
 
-            total_time_table = pd.DataFrame({
-                "task_key": [k for k, _ in sorted_key_times],
-                "total time": [f"{v} {u}" for v, u in formatted_times],
-            })
+            total_time_table = pd.DataFrame(
+                {
+                    "task_key": [k for k, _ in sorted_key_times],
+                    "total time": [f"{v} {u}" for v, u in formatted_times],
+                }
+            )
 
             # --- Dask report button ---
             report_path = dask_stats.get("performance_report")
@@ -163,17 +167,25 @@ def benchmark_to_table(bm, run_name):
 
     if dask_table is not None:
         card_children.append(
-            dbc.CardBody([
-                html.H5("Dask Metrics", className="card-title"),
-                dbc.Table.from_dataframe(dask_table, striped=True, bordered=True, hover=True),
-            ])
+            dbc.CardBody(
+                [
+                    html.H5("Dask Metrics", className="card-title"),
+                    dbc.Table.from_dataframe(
+                        dask_table, striped=True, bordered=True, hover=True
+                    ),
+                ]
+            )
         )
 
         card_children.append(
-            dbc.CardBody([
-                html.H5("Dask Task Times", className="card-title"),
-                dbc.Table.from_dataframe(total_time_table, striped=True, bordered=True, hover=True),
-            ])
+            dbc.CardBody(
+                [
+                    html.H5("Dask Task Times", className="card-title"),
+                    dbc.Table.from_dataframe(
+                        total_time_table, striped=True, bordered=True, hover=True
+                    ),
+                ]
+            )
         )
     if dask_report_button is not None:
         buttons.append(dask_report_button)
@@ -195,15 +207,17 @@ def benchmark_to_table(bm, run_name):
 
 
 def benchmarks_to_tables(run_name, run_data):
-    return [
-        benchmark_to_table(bm, run_name)
-        for bm in run_data.get("benchmarks", [])
-    ]
+    return [benchmark_to_table(bm, run_name) for bm in run_data.get("benchmarks", [])]
 
 
 # --- Dash app ---
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.FLATLY],
+    suppress_callback_exceptions=True,
+)
 app.title = "lbench Dashboard"
+
 
 # Layout with sidebar as a clickable list
 def create_sidebar(run_data, active_run=None):
@@ -213,32 +227,13 @@ def create_sidebar(run_data, active_run=None):
                 r,
                 id={"type": "run-item", "index": i},
                 action=True,
-                active=(r == active_run)
+                active=(r == active_run),
             )
             for i, r in enumerate(run_data.keys())
         ],
-        id="run-list"
+        id="run-list",
     )
 
-def initial_layout():
-    run_data = load_all_runs(ROOT_DIR)
-    return dbc.Container([
-        dcc.Store(id="run-data-store", data=run_data),
-        dbc.Row([
-            # Sidebar
-            dbc.Col([
-                html.H4("Benchmark Runs"),
-                html.Div(id="sidebar-container", children=create_sidebar(run_data))
-            ], width=3, style={"borderRight": "1px solid #ccc", "height": "100vh", "overflowY": "auto", "paddingTop": "20px"}),
-
-            # Main content
-            dbc.Col([
-                html.Div(id="benchmark-tables-container")
-            ], width=9, style={"padding": "20px", "overflowY": "auto", "height": "100vh"})
-        ])
-    ], fluid=True)
-
-app.layout = initial_layout  # assign the function, not the result, so it's rerun on each page reload
 
 # --- Callback to update benchmark tables and highlight selected run ---
 @app.callback(
@@ -249,7 +244,9 @@ app.layout = initial_layout  # assign the function, not the result, so it's reru
 )
 def update_benchmarks_and_sidebar(n_clicks_list, run_data):
     ctx = dash.ctx
-    triggered = ctx.triggered_id  # This is the dict {"type": "run-item", "index": i} or None
+    triggered = (
+        ctx.triggered_id
+    )  # This is the dict {"type": "run-item", "index": i} or None
     if not run_data or not isinstance(run_data, dict):
         return html.Div("No run data found"), create_sidebar({})
     if not triggered or triggered == "run-data-store":
@@ -264,11 +261,14 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
         return tables, sidebar
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
+
 def run_dashboard(port=8050):
     app.run(debug=True, port=port)
 
+
 # Assuming 'app' is your dash.Dash instance
 server = app.server  # Flask server
+
 
 @server.route("/file/<run_name>/<path:filename>")
 def serve_file(run_name, filename):
@@ -276,9 +276,11 @@ def serve_file(run_name, filename):
     # Make sure to sanitize filename for safety in production
     return send_from_directory(run_dir, filename)
 
+
 @server.route("/tuna_web/<path:filename>")
 def tuna_static(filename):
     return send_from_directory(TUNA_WEB_DIR, filename)
+
 
 @server.route("/flamegraph/<run_name>/<path:filename>")
 def serve_flamegraph(run_name, filename):
@@ -292,7 +294,103 @@ def serve_flamegraph(run_name, filename):
     data = read(str(prof_file))
     html_content = render(data, prof_file.name)
 
-    html_content = re.sub(r'src="static/(.*?)"', r'src="/tuna_web/static/\1"', html_content)
-    html_content = re.sub(r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content)
+    html_content = re.sub(
+        r'src="static/(.*?)"', r'src="/tuna_web/static/\1"', html_content
+    )
+    html_content = re.sub(
+        r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content
+    )
 
     return Response(html_content, mimetype="text/html")
+
+
+def trends_layout(run_data):
+    return dbc.Container(
+        [
+            html.H3("Trends"),
+            dcc.Dropdown(
+                id="benchmark-selector",
+                options=[
+                    {"label": bm["fullname"], "value": bm["fullname"]}
+                    for run in run_data.values()
+                    for bm in run.get("benchmarks", [])
+                ],
+                placeholder="Select a benchmark",
+            ),
+            dcc.Graph(
+                id="trend-plot",
+                figure={"layout": {"title": "Select a benchmark to view trends"}},
+            ),
+        ],
+        style={"padding": "20px"},
+    )
+
+
+def runs_layout(run_data):
+    return dbc.Container(
+        [
+            dcc.Store(id="run-data-store", data=run_data),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.H3("Runs"),
+                            html.Div(
+                                id="sidebar-container",
+                                children=create_sidebar(run_data),
+                            ),
+                        ],
+                        width=3,
+                        style={
+                            "borderRight": "1px solid #ccc",
+                            "height": "100vh",
+                            "overflowY": "auto",
+                        },
+                    ),
+                    dbc.Col(
+                        [html.Div(id="benchmark-tables-container")],
+                        width=9,
+                        style={
+                            "padding": "20px",
+                            "overflowY": "auto",
+                            "height": "100vh",
+                        },
+                    ),
+                ]
+            ),
+        ],
+        style={"padding": "20px"},
+    )
+
+
+RUN_DATA = load_all_runs(ROOT_DIR)
+
+
+@app.callback(Output("page-content", "children"), Input("url", "pathname"))
+def display_page(pathname):
+    if pathname == "/trends":
+        return trends_layout(RUN_DATA)
+    return runs_layout(RUN_DATA)
+
+
+def create_navbar():
+    return dbc.NavbarSimple(
+        brand="lbench Dashboard",
+        brand_href="/",
+        color="primary",
+        dark=True,
+        children=[
+            dbc.NavItem(dcc.Link("Runs", href="/", className="nav-link")),
+            dbc.NavItem(dcc.Link("Trends", href="/trends", className="nav-link")),
+        ],
+        sticky="top",
+    )
+
+
+app.layout = html.Div(
+    [
+        dcc.Location(id="url", refresh=False),
+        create_navbar(),
+        html.Div(id="page-content"),
+    ]
+)
