@@ -204,10 +204,12 @@ def benchmarks_to_tables(run_name, run_data):
 
 
 # --- Dash app ---
+# Create app with relative URL paths to work with Jupyter proxy
 app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.FLATLY],
-    url_base_pathname=''
+    requests_pathname_prefix='',
+    routes_pathname_prefix='/'
 )
 app.title = "lbench Dashboard"
 
