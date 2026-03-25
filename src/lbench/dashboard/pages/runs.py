@@ -3,7 +3,8 @@ from dash import html, Input, Output, dcc, callback
 import dash_bootstrap_components as dbc
 import pandas as pd
 from pathlib import Path
-from lbench.dashboard.app import RUN_DATA
+from lbench.dashboard.app import RUN_DATA, BENCHMARK_COLLECTION
+from lbench.dashboard.metrics import registry
 
 dash.register_page(__name__, path='/', name='Runs')
 

@@ -3,33 +3,58 @@ from dash import html, Input, Output, dcc, callback
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import pandas as pd
-from lbench.dashboard.app import RUN_DATA
+from lbench.dashboard.app import BENCHMARK_COLLECTION
+from lbench.dashboard.metrics import registry
 
 dash.register_page(__name__, path='/trends', name='Trends')
 
 
 # Page layout
 def layout():
-    benchmarks = sorted(
-        {
-            bm["fullname"]
-            for run in RUN_DATA.values()
-            for bm in run.get("benchmarks", [])
-        }
-    )
+    benchmarks = BENCHMARK_COLLECTION.get_benchmark_names()
+    common_metrics = BENCHMARK_COLLECTION.get_common_metrics()
 
     return dbc.Container(
         [
             html.H3("Trends"),
-            dcc.Dropdown(
-                id="benchmark-selector",
-                options=[{"label": b, "value": b} for b in benchmarks],
-                placeholder="Select one or more benchmarks",
-                multi=True,
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Select Benchmarks:", className="fw-bold"),
+                            dcc.Dropdown(
+                                id="benchmark-selector",
+                                options=[{"label": b, "value": b} for b in benchmarks],
+                                placeholder="Select one or more benchmarks",
+                                multi=True,
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("Select Metric:", className="fw-bold"),
+                            dcc.Dropdown(
+                                id="metric-selector",
+                                options=[
+                                    {
+                                        "label": f"{m.display_name} ({m.unit})" if m.unit else m.display_name,
+                                        "value": m.name,
+                                    }
+                                    for m in common_metrics
+                                ],
+                                value="mean",  # Default to mean
+                                placeholder="Select a metric",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="mb-3",
             ),
             dcc.Graph(
                 id="trend-plot",
-                figure={"layout": {"title": "Select a benchmark to view trends"}},
+                figure={"layout": {"title": "Select a benchmark and metric to view trends"}},
             ),
         ],
         style={"padding": "20px"},
@@ -39,46 +64,46 @@ def layout():
 @callback(
     Output("trend-plot", "figure"),
     Input("benchmark-selector", "value"),
+    Input("metric-selector", "value"),
 )
-def update_trend_plot(selected_benchmarks):
-    if not selected_benchmarks:
-        return {"layout": {"title": "Select one or more benchmarks to view trends"}}
+def update_trend_plot(selected_benchmarks, selected_metric_name):
+    if not selected_benchmarks or not selected_metric_name:
+        return {"layout": {"title": "Select one or more benchmarks and a metric to view trends"}}
+
+    # Get the metric object
+    metric = registry.get(selected_metric_name)
+    if not metric:
+        return {"layout": {"title": f"Metric '{selected_metric_name}' not found"}}
 
     fig = go.Figure()
 
     for benchmark in selected_benchmarks:
-        rows = []
-        for run_name, run in RUN_DATA.items():
-            for bm in run.get("benchmarks", []):
-                if bm["fullname"] == benchmark:
-                    stats = bm.get("stats", {})
-                    rows.append(
-                        {
-                            "run": run_name,
-                            "mean": stats.get("mean"),
-                            "stddev": stats.get("stddev"),
-                        }
-                    )
-        if not rows:
+        # Use the new metrics system to get data
+        df = BENCHMARK_COLLECTION.get_metric_series(benchmark, metric)
+
+        if df.empty:
             continue
 
-        df = pd.DataFrame(rows).sort_values("run")
-        df["run"] = pd.to_datetime(df["run"])
-
+        # Add trace for this benchmark
         fig.add_trace(
             go.Scatter(
-                x=df["run"],
-                y=df["mean"],
+                x=df["timestamp"],
+                y=df["value"],
                 mode="lines+markers",
-                error_y=dict(type="data", array=df["stddev"], visible=True),
                 name=benchmark,
-            ),
+            )
         )
+
+    # Update layout with metric information
+    y_axis_label = f"{metric.display_name}"
+    if metric.unit:
+        y_axis_label += f" ({metric.unit})"
 
     fig.update_layout(
         xaxis_title="Run",
-        yaxis_title="Mean Time (s)",
+        yaxis_title=y_axis_label,
         hovermode="x unified",
+        title=f"Trends: {metric.display_name}",
     )
 
     return fig
