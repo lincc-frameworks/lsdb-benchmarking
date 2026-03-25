@@ -2,6 +2,8 @@ import json
 import os
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
+
 import dash
 from dash import html, Input, Output, dcc
 import dash_bootstrap_components as dbc
@@ -207,9 +209,7 @@ def benchmarks_to_tables(run_name, run_data):
 # Create app with relative URL paths to work with Jupyter proxy
 app = dash.Dash(
     __name__,
-    external_stylesheets=[dbc.themes.FLATLY],
-    requests_pathname_prefix='',
-    routes_pathname_prefix='/'
+    external_stylesheets=[dbc.themes.FLATLY]
 )
 app.title = "lbench Dashboard"
 
@@ -278,7 +278,7 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data):
     return html.Div("Select a run from the sidebar"), create_sidebar(run_data)
 
 
-def _create_app_with_prefix(prefix=''):
+def _create_app_with_prefix(prefix='/'):
     """Create a new Dash app instance with the specified URL prefix."""
     new_app = dash.Dash(
         __name__,
@@ -337,11 +337,12 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
     # For Jupyter environments, pass the server URL directly
     if jupyter_server_url:
         jupyter_server_url = jupyter_server_url.rstrip('/')
+        url = f'{jupyter_server_url}/proxy/{port}/'
+        url_prefix = urlsplit(url).path + f"/proxy/{port}/"
 
         # Display the URL explicitly for external mode
         if jupyter_mode == 'external':
             from IPython.display import display, HTML
-            url = f'{jupyter_server_url}/proxy/{port}/'
             print(f"Dashboard starting on port {port}...")
             print(f"Access at: {url}")
             display(
@@ -350,25 +351,18 @@ def run_dashboard(port=8050, jupyter_mode='external', height=800, jupyter_server
         # Don't set any prefix - the Jupyter proxy handles routing transparently
         # Just run the app normally on localhost
 
-        # Start server in background
-        import threading
-        def run_server():
-            app.run(
-                debug=False,
-                host='127.0.0.1',
-                jupyter_mode=jupyter_mode,
-                port=port,
-                use_reloader=False,
-                dev_tools_props_check=False
-            )
+        # Get prefix by url path and proxy
 
-        thread = threading.Thread(target=run_server, daemon=True)
-        thread.start()
+        app = _create_app_with_prefix(prefix=url_prefix)
 
-        # Give server time to start
-        import time
-        time.sleep(2)
-        print("Server started! Click the link above to access the dashboard.")
+        app.run(
+            debug=False,
+            host='127.0.0.1',
+            jupyter_mode=jupyter_mode,
+            port=port,
+            use_reloader=False,
+            dev_tools_props_check=False
+        )
     else:
         # For command line or local environments
         app.run(debug=True, port=port, jupyter_mode=jupyter_mode, height=height)
