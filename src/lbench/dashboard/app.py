@@ -207,7 +207,7 @@ def benchmarks_to_tables(run_name, run_data):
 app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.FLATLY],
-    url_base_pathname='/'
+    url_base_pathname=''
 )
 app.title = "lbench Dashboard"
 
