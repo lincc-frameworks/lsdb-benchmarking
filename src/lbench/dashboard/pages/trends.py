@@ -77,6 +77,11 @@ def update_trend_plot(selected_benchmarks, selected_metric_name):
 
     fig = go.Figure()
 
+    # Check if this metric supports error bars
+    error_bar_metric = None
+    if metric.supports_error_bars():
+        error_bar_metric = metric.get_error_bar_metric()
+
     for benchmark in selected_benchmarks:
         # Use the new metrics system to get data
         df = BENCHMARK_COLLECTION.get_metric_series(benchmark, metric)
@@ -84,15 +89,32 @@ def update_trend_plot(selected_benchmarks, selected_metric_name):
         if df.empty:
             continue
 
+        # Prepare trace kwargs
+        trace_kwargs = {
+            "x": df["timestamp"],
+            "y": df["value"],
+            "mode": "lines+markers",
+            "name": benchmark,
+        }
+
+        # Add error bars if available
+        if error_bar_metric:
+            error_df = BENCHMARK_COLLECTION.get_metric_series(benchmark, error_bar_metric)
+            if not error_df.empty:
+                # Merge error data with main data
+                merged = df.merge(error_df, on=["run_id", "timestamp"], suffixes=("", "_error"))
+                if "value_error" in merged.columns:
+                    trace_kwargs["error_y"] = dict(
+                        type="data",
+                        array=merged["value_error"],
+                        visible=True
+                    )
+                    # Update x and y to use merged data
+                    trace_kwargs["x"] = merged["timestamp"]
+                    trace_kwargs["y"] = merged["value"]
+
         # Add trace for this benchmark
-        fig.add_trace(
-            go.Scatter(
-                x=df["timestamp"],
-                y=df["value"],
-                mode="lines+markers",
-                name=benchmark,
-            )
-        )
+        fig.add_trace(go.Scatter(**trace_kwargs))
 
     # Update layout with metric information
     y_axis_label = f"{metric.display_name}"

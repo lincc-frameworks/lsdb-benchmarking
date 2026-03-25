@@ -33,128 +33,87 @@ def format_duration(seconds, digits=3):
 
 
 def benchmark_to_table(bm, run_name):
-    stats = bm.get("stats", {})
-    # Round values and add units to headings
-    min_v, min_u = format_duration(stats.get("min"))
-    max_v, max_u = format_duration(stats.get("max"))
-    mean_v, mean_u = format_duration(stats.get("mean"))
-    std_v, std_u = format_duration(stats.get("stddev"))
+    """Create table cards for a benchmark using metric groups."""
+    card_children = [dbc.CardHeader(bm["fullname"])]
 
-    df = pd.DataFrame(
-        {
-            f"min ({min_u})": [min_v],
-            f"max ({max_u})": [max_v],
-            f"mean ({mean_u})": [mean_v],
-            f"stddev ({std_u})": [std_v],
-            "rounds": [stats.get("rounds")],
-            "iterations": [stats.get("iterations")],
-        }
-    )
+    # Get available metric groups and render their tables
+    available_groups = registry.get_available_groups(bm)
 
-    dask_table = None
-    total_time_table = None
-    dask_report_button = None
-    flamegraph_button = None
+    for group in available_groups:
+        df = group.to_dataframe(bm)
+        if df is not None:
+            card_children.append(
+                dbc.CardBody([
+                    html.H5(group.display_name, className="card-title") if group.name != "stats" else None,
+                    dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True)
+                ])
+            )
 
+    # Handle special Dask task breakdown table (not a simple metric)
+    buttons = []
     if "extra_info" in bm and bm["extra_info"]:
         extra = bm["extra_info"]
 
         if "dask" in extra:
             dask_stats = extra["dask"]
-            n_tasks = dask_stats.get("n_tasks")
             keys = [k[0] for k in dask_stats.get("keys", [])]
 
-            times = [
-                sum([k["stop"] - k["start"] for k in s])
-                for s in dask_stats.get("startstops", [])
-            ]
+            if keys:
+                times = [
+                    sum([k["stop"] - k["start"] for k in s])
+                    for s in dask_stats.get("startstops", [])
+                ]
 
-            total_dask_time = sum(times)
+                total_time_by_key = {}
+                for k, t in zip(keys, times):
+                    total_time_by_key[k] = total_time_by_key.get(k, 0) + t
 
-            total_time_by_key = {}
-            for k, t in zip(keys, times):
-                total_time_by_key[k] = total_time_by_key.get(k, 0) + t
+                sorted_key_times = sorted(
+                    total_time_by_key.items(), key=lambda x: x[1], reverse=True
+                )
 
-            total_time_fmt, total_time_u = format_duration(total_dask_time)
+                formatted_times = [format_duration(t) for _, t in sorted_key_times]
 
-            dask_table = pd.DataFrame(
-                {
-                    "n_tasks": [n_tasks],
-                    f"total dask time ({total_time_u})": [total_time_fmt],
-                }
-            )
+                total_time_table = pd.DataFrame(
+                    {
+                        "task_key": [k for k, _ in sorted_key_times],
+                        "total time": [f"{v} {u}" for v, u in formatted_times],
+                    }
+                )
 
-            sorted_key_times = sorted(
-                total_time_by_key.items(), key=lambda x: x[1], reverse=True
-            )
-
-            formatted_times = [format_duration(t) for _, t in sorted_key_times]
-
-            total_time_table = pd.DataFrame(
-                {
-                    "task_key": [k for k, _ in sorted_key_times],
-                    "total time": [f"{v} {u}" for v, u in formatted_times],
-                }
-            )
+                card_children.append(
+                    dbc.CardBody(
+                        [
+                            html.H5("Dask Task Times", className="card-title"),
+                            dbc.Table.from_dataframe(
+                                total_time_table, striped=True, bordered=True, hover=True
+                            ),
+                        ]
+                    )
+                )
 
             # --- Dask report button ---
             report_path = dask_stats.get("performance_report")
             if report_path:
                 report_name = Path(report_path).name
-                dask_report_button = html.A(
+                buttons.append(html.A(
                     "Open Dask Performance Report",
                     href=f"/file/{run_name}/{report_name}",
                     target="_blank",
                     className="btn btn-outline-primary mt-2",
                     role="button",
-                )
+                ))
 
         if "cprofile_path" in extra:
             profile_path = extra["cprofile_path"]
             profile_name = Path(profile_path).name
-            flamegraph_button = html.A(
+            buttons.append(html.A(
                 "Open Flamegraph",
                 href=f"/flamegraph/{run_name}/{profile_name}",
                 target="_blank",
                 className="btn btn-outline-secondary mt-2",
                 role="button",
-            )
-
-    card_children = [
-        dbc.CardHeader(bm["fullname"]),
-        dbc.CardBody(
-            dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True)
-        ),
-    ]
-
-    buttons = []
-
-    if dask_table is not None:
-        card_children.append(
-            dbc.CardBody(
-                [
-                    html.H5("Dask Metrics", className="card-title"),
-                    dbc.Table.from_dataframe(
-                        dask_table, striped=True, bordered=True, hover=True
-                    ),
-                ]
-            )
-        )
-
-        card_children.append(
-            dbc.CardBody(
-                [
-                    html.H5("Dask Task Times", className="card-title"),
-                    dbc.Table.from_dataframe(
-                        total_time_table, striped=True, bordered=True, hover=True
-                    ),
-                ]
-            )
-        )
-    if dask_report_button is not None:
-        buttons.append(dask_report_button)
-    if flamegraph_button is not None:
-        buttons.append(flamegraph_button)
+            ))
 
     if len(buttons) > 0:
         card_children.append(

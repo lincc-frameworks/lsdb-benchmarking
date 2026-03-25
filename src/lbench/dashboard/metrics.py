@@ -8,8 +8,31 @@ from benchmark runs. It's designed to be extensible and resilient to missing dat
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 import pandas as pd
+
+
+def format_duration(seconds, digits=3):
+    """
+    Format a duration in seconds using the most appropriate unit.
+    Returns (value_str, unit).
+    """
+    if seconds is None:
+        return "-", ""
+
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        return str(seconds), ""
+
+    if seconds >= 1:
+        return f"{seconds:.{digits}f}", "s"
+    elif seconds >= 1e-3:
+        return f"{seconds * 1e3:.{digits}f}", "ms"
+    elif seconds >= 1e-6:
+        return f"{seconds * 1e6:.{digits}f}", "µs"
+    else:
+        return f"{seconds * 1e9:.{digits}f}", "ns"
 
 
 class Metric(ABC):
@@ -17,6 +40,7 @@ class Metric(ABC):
 
     Metrics extract specific values from raw benchmark data.
     They gracefully handle missing data by returning None.
+    Metrics can also control how they're displayed in tables and trends.
     """
 
     def __init__(self, name: str, display_name: str, unit: str = "", description: str = ""):
@@ -44,18 +68,106 @@ class Metric(ABC):
         except (KeyError, TypeError, ValueError):
             return False
 
+    def format_value(self, value: Optional[float]) -> str:
+        """Format the metric value for display.
+
+        Override this for custom formatting (e.g., time units).
+
+        Args:
+            value: Raw metric value
+
+        Returns:
+            Formatted string
+        """
+        if value is None:
+            return "-"
+        return f"{value:.3f}"
+
+    def get_table_column_name(self) -> str:
+        """Get the column name for this metric in tables.
+
+        Returns:
+            Column name with unit if applicable
+        """
+        if self.unit:
+            return f"{self.display_name} ({self.unit})"
+        return self.display_name
+
+    def supports_error_bars(self) -> bool:
+        """Check if this metric supports error bars in trend plots.
+
+        Returns:
+            True if error bars are available
+        """
+        return False
+
+    def get_error_bar_metric(self) -> Optional['Metric']:
+        """Get the metric to use for error bars (e.g., stddev for mean).
+
+        Returns:
+            Metric for error bars or None
+        """
+        return None
+
     def __repr__(self):
         return f"<Metric: {self.name}>"
 
 
+class MetricGroup:
+    """Groups related metrics together (e.g., stats, dask metrics).
+
+    Used for organizing table display and grouping metrics logically.
+    """
+
+    def __init__(self, name: str, display_name: str, metrics: List[Metric] = None):
+        self.name = name
+        self.display_name = display_name
+        self.metrics = metrics or []
+
+    def add_metric(self, metric: Metric):
+        """Add a metric to this group."""
+        self.metrics.append(metric)
+
+    def is_available(self, benchmark_data: dict) -> bool:
+        """Check if any metrics in this group are available."""
+        return any(m.is_available(benchmark_data) for m in self.metrics)
+
+    def get_available_metrics(self, benchmark_data: dict) -> List[Metric]:
+        """Get metrics from this group that are available."""
+        return [m for m in self.metrics if m.is_available(benchmark_data)]
+
+    def to_dataframe(self, benchmark_data: dict) -> Optional[pd.DataFrame]:
+        """Create a DataFrame for this metric group's table.
+
+        Args:
+            benchmark_data: Raw benchmark data
+
+        Returns:
+            DataFrame with one row or None if no metrics available
+        """
+        available = self.get_available_metrics(benchmark_data)
+        if not available:
+            return None
+
+        data = {}
+        for metric in available:
+            value = metric.extract(benchmark_data)
+            formatted = metric.format_value(value)
+            col_name = metric.get_table_column_name()
+            data[col_name] = [formatted]
+
+        return pd.DataFrame(data)
+
+
 class MetricRegistry:
-    """Registry for managing available metrics.
+    """Registry for managing available metrics and groups.
 
     Allows registration of built-in and custom metrics.
     """
 
     def __init__(self):
         self._metrics: Dict[str, Metric] = {}
+        self._groups: Dict[str, MetricGroup] = {}
 
     def register(self, metric: Metric) -> Metric:
         """Register a metric.
@@ -69,13 +181,36 @@ class MetricRegistry:
         self._metrics[metric.name] = metric
         return metric
 
+    def register_group(self, group: MetricGroup) -> MetricGroup:
+        """Register a metric group.
+
+        Args:
+            group: MetricGroup instance to register
+
+        Returns:
+            The registered group
+        """
+        self._groups[group.name] = group
+        # Also register individual metrics
+        for metric in group.metrics:
+            self.register(metric)
+        return group
+
     def get(self, name: str) -> Optional[Metric]:
         """Get a metric by name."""
         return self._metrics.get(name)
 
+    def get_group(self, name: str) -> Optional[MetricGroup]:
+        """Get a metric group by name."""
+        return self._groups.get(name)
+
     def list_all(self) -> List[Metric]:
         """Get all registered metrics."""
         return list(self._metrics.values())
+
+    def list_groups(self) -> List[MetricGroup]:
+        """Get all registered metric groups."""
+        return list(self._groups.values())
 
     def get_available_metrics(self, benchmark_data: dict) -> List[Metric]:
         """Get metrics that are available for the given benchmark data.
@@ -88,6 +223,17 @@ class MetricRegistry:
         """
         return [m for m in self._metrics.values() if m.is_available(benchmark_data)]
 
+    def get_available_groups(self, benchmark_data: dict) -> List[MetricGroup]:
+        """Get metric groups that have at least one available metric.
+
+        Args:
+            benchmark_data: Raw benchmark dictionary
+
+        Returns:
+            List of available groups
+        """
+        return [g for g in self._groups.values() if g.is_available(benchmark_data)]
+
 
 # Global registry
 registry = MetricRegistry()
@@ -96,11 +242,12 @@ registry = MetricRegistry()
 # --- Built-in Metrics ---
 
 class StatsMetric(Metric):
-    """Base class for metrics from the 'stats' section."""
+    """Base class for metrics from the 'stats' section with time formatting."""
 
-    def __init__(self, name: str, display_name: str, unit: str = "s", stats_key: str = None):
-        super().__init__(name, display_name, unit)
+    def __init__(self, name: str, display_name: str, stats_key: str = None, error_bar_metric: str = None):
+        super().__init__(name, display_name, unit="s")
         self.stats_key = stats_key or name
+        self._error_bar_metric_name = error_bar_metric
 
     def extract(self, benchmark_data: dict) -> Optional[float]:
         try:
@@ -109,16 +256,45 @@ class StatsMetric(Metric):
         except (TypeError, ValueError):
             return None
 
+    def format_value(self, value: Optional[float]) -> str:
+        """Format using appropriate time units."""
+        formatted, unit = format_duration(value)
+        return formatted
 
-# Register standard stats metrics
-registry.register(StatsMetric("min", "Min Time", "s"))
-registry.register(StatsMetric("max", "Max Time", "s"))
-registry.register(StatsMetric("mean", "Mean Time", "s"))
-registry.register(StatsMetric("median", "Median Time", "s"))
-registry.register(StatsMetric("stddev", "Std Dev", "s"))
-registry.register(StatsMetric("iqr", "IQR", "s"))
-registry.register(StatsMetric("q1", "Q1", "s"))
-registry.register(StatsMetric("q3", "Q3", "s"))
+    def get_table_column_name(self) -> str:
+        """Get column name with dynamic units based on typical values."""
+        # For table headers, we'll use a fixed unit - formatting handles display
+        # But we want to show what the base unit is
+        return f"{self.display_name} (s)"
+
+    def supports_error_bars(self) -> bool:
+        """Time metrics with stddev support error bars."""
+        return self._error_bar_metric_name is not None
+
+    def get_error_bar_metric(self) -> Optional[Metric]:
+        """Get the stddev metric for error bars."""
+        if self._error_bar_metric_name:
+            return registry.get(self._error_bar_metric_name)
+        return None
+
+
+# Create stats metrics
+min_metric = StatsMetric("min", "Min")
+max_metric = StatsMetric("max", "Max")
+stddev_metric = StatsMetric("stddev", "Std Dev")
+mean_metric = StatsMetric("mean", "Mean", error_bar_metric="stddev")
+median_metric = StatsMetric("median", "Median")
+iqr_metric = StatsMetric("iqr", "IQR")
+q1_metric = StatsMetric("q1", "Q1")
+q3_metric = StatsMetric("q3", "Q3")
+
+# Create stats group
+stats_group = MetricGroup(
+    "stats",
+    "Performance Statistics",
+    [min_metric, max_metric, mean_metric, median_metric, stddev_metric, iqr_metric, q1_metric, q3_metric]
+)
+registry.register_group(stats_group)
 
 
 class CountMetric(Metric):
@@ -135,9 +311,23 @@ class CountMetric(Metric):
         except (TypeError, ValueError):
             return None
 
+    def format_value(self, value: Optional[float]) -> str:
+        """Format as integer."""
+        if value is None:
+            return "-"
+        return str(int(value))
 
-registry.register(CountMetric("rounds", "Rounds"))
-registry.register(CountMetric("iterations", "Iterations"))
+
+rounds_metric = CountMetric("rounds", "Rounds")
+iterations_metric = CountMetric("iterations", "Iterations")
+
+# Create execution group
+execution_group = MetricGroup(
+    "execution",
+    "Execution Info",
+    [rounds_metric, iterations_metric]
+)
+registry.register_group(execution_group)
 
 
 # --- Computed Metrics ---
@@ -164,8 +354,21 @@ class CoefficientOfVariation(Metric):
             pass
         return None
 
+    def format_value(self, value: Optional[float]) -> str:
+        """Format as percentage."""
+        if value is None:
+            return "-"
+        return f"{value * 100:.2f}%"
 
-registry.register(CoefficientOfVariation())
+
+cv_metric = CoefficientOfVariation()
+
+computed_group = MetricGroup(
+    "computed",
+    "Computed Metrics",
+    [cv_metric]
+)
+registry.register_group(computed_group)
 
 
 # --- Dask Metrics ---
@@ -185,7 +388,7 @@ class DaskTaskCount(DaskMetric):
     """Number of Dask tasks."""
 
     def __init__(self):
-        super().__init__("dask_n_tasks", "Dask Task Count", "", "Number of Dask tasks executed")
+        super().__init__("dask_n_tasks", "Task Count", "", "Number of Dask tasks executed")
 
     def extract(self, benchmark_data: dict) -> Optional[float]:
         dask_stats = self.get_dask_stats(benchmark_data)
@@ -196,12 +399,18 @@ class DaskTaskCount(DaskMetric):
                 pass
         return None
 
+    def format_value(self, value: Optional[float]) -> str:
+        """Format as integer."""
+        if value is None:
+            return "-"
+        return str(int(value))
+
 
 class DaskTotalTime(DaskMetric):
     """Total Dask execution time."""
 
     def __init__(self):
-        super().__init__("dask_total_time", "Dask Total Time", "s", "Total Dask task execution time")
+        super().__init__("dask_total_time", "Total Time", "s", "Total Dask task execution time")
 
     def extract(self, benchmark_data: dict) -> Optional[float]:
         dask_stats = self.get_dask_stats(benchmark_data)
@@ -217,9 +426,21 @@ class DaskTotalTime(DaskMetric):
                 pass
         return None
 
+    def format_value(self, value: Optional[float]) -> str:
+        """Format using appropriate time units."""
+        formatted, unit = format_duration(value)
+        return formatted
 
-registry.register(DaskTaskCount())
-registry.register(DaskTotalTime())
+
+dask_task_count = DaskTaskCount()
+dask_total_time = DaskTotalTime()
+
+dask_group = MetricGroup(
+    "dask",
+    "Dask Metrics",
+    [dask_task_count, dask_total_time]
+)
+registry.register_group(dask_group)
 
 
 # --- Data Structures ---
