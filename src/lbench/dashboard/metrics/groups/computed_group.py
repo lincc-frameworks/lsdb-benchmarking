@@ -8,12 +8,7 @@ class CoefficientOfVariation(Metric):
     """Coefficient of variation (stddev / mean)."""
 
     def __init__(self):
-        super().__init__(
-            "cv",
-            "Coefficient of Variation",
-            "",
-            "Relative standard deviation (stddev/mean)"
-        )
+        super().__init__("cv", "Coefficient of Variation")
 
     def extract(self, benchmark_data: dict) -> Optional[float]:
         try:

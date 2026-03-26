@@ -1,8 +1,7 @@
 from typing import Optional
 
-from lbench.dashboard.metrics import Metric
+from lbench.dashboard.metrics import Metric, DurationMetric, MemoryMetric
 from lbench.dashboard.metrics.metric_group import MetricGroup
-from lbench.dashboard.utils import format_duration
 
 
 class DaskMetric(Metric):
@@ -20,7 +19,7 @@ class DaskTaskCount(DaskMetric):
     """Number of Dask tasks."""
 
     def __init__(self):
-        super().__init__("dask_n_tasks", "Task Count", "", "Number of Dask tasks executed")
+        super().__init__("dask_n_tasks", "Task Count")
 
     def extract(self, benchmark_data: dict) -> Optional[float]:
         dask_stats = self.get_dask_stats(benchmark_data)
@@ -32,17 +31,16 @@ class DaskTaskCount(DaskMetric):
         return None
 
     def format_value(self, value: Optional[float]) -> str:
-        """Format as integer."""
         if value is None:
             return "-"
         return str(int(value))
 
 
-class DaskTotalTime(DaskMetric):
+class DaskTotalTime(DaskMetric, DurationMetric):
     """Total Dask execution time."""
 
     def __init__(self):
-        super().__init__("dask_total_time", "Total Time", "s", "Total Dask task execution time")
+        super().__init__("dask_total_time", "Total Time")
 
     def extract(self, benchmark_data: dict) -> Optional[float]:
         dask_stats = self.get_dask_stats(benchmark_data)
@@ -58,14 +56,25 @@ class DaskTotalTime(DaskMetric):
                 pass
         return None
 
-    def format_value(self, value: Optional[float]) -> str:
-        """Format using appropriate time units."""
-        formatted, unit = format_duration(value)
-        return formatted
+
+class DaskPeakMemory(DaskMetric, MemoryMetric):
+    """Peak memory during Dask execution."""
+
+    def __init__(self):
+        super().__init__("dask_peak_memory", "Peak Memory")
+
+    def extract(self, benchmark_data: dict) -> Optional[float]:
+        dask_stats = self.get_dask_stats(benchmark_data)
+        if dask_stats:
+            try:
+                return dask_stats.get("peak_memory_bytes", None)
+            except (TypeError, ValueError):
+                pass
+        return None
 
 
 dask_group = MetricGroup(
     "dask",
     "Dask Metrics",
-    [DaskTaskCount(), DaskTotalTime()]
+    [DaskTaskCount(), DaskTotalTime(), DaskPeakMemory()]
 )

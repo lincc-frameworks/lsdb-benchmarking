@@ -43,7 +43,7 @@ class MetricGroup:
         for metric in available:
             value = metric.extract(benchmark_data)
             formatted = metric.format_value(value)
-            col_name = metric.get_table_column_name()
+            col_name = metric.get_table_column_name(value)
             data[col_name] = [formatted]
 
         return pd.DataFrame(data)

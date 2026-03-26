@@ -1,6 +1,7 @@
 import dash
 from dash import html, Input, Output, dcc, callback
 import dash_bootstrap_components as dbc
+import pandas as pd
 import plotly.graph_objects as go
 from lbench.dashboard.context import registry, BENCHMARK_COLLECTION
 
@@ -36,7 +37,7 @@ def layout():
                                 id="metric-selector",
                                 options=[
                                     {
-                                        "label": f"{m.display_name} ({m.unit})" if m.unit else m.display_name,
+                                        "label": m.display_name,
                                         "value": m.name,
                                     }
                                     for m in common_metrics
@@ -80,17 +81,21 @@ def update_trend_plot(selected_benchmarks, selected_metric_name):
     if metric.supports_error_bars():
         error_bar_metric = metric.get_error_bar_metric()
 
-    for benchmark in selected_benchmarks:
-        # Use the new metrics system to get data
-        df = BENCHMARK_COLLECTION.get_metric_series(benchmark, metric)
+    # Collect all series first so we can pick a consistent scale across benchmarks
+    series = {b: BENCHMARK_COLLECTION.get_metric_series(b, metric) for b in selected_benchmarks}
+    series = {b: df for b, df in series.items() if not df.empty}
 
-        if df.empty:
-            continue
+    if not series:
+        return {"layout": {"title": "No data available for the selected benchmarks and metric"}}
 
+    all_values = pd.concat([df["value"] for df in series.values()])
+    scale, plot_unit = metric.get_plot_scale_and_unit(all_values)
+
+    for benchmark, df in series.items():
         # Prepare trace kwargs
         trace_kwargs = {
             "x": df["timestamp"],
-            "y": df["value"],
+            "y": df["value"] / scale,
             "mode": "lines+markers",
             "name": benchmark,
         }
@@ -104,20 +109,20 @@ def update_trend_plot(selected_benchmarks, selected_metric_name):
                 if "value_error" in merged.columns:
                     trace_kwargs["error_y"] = dict(
                         type="data",
-                        array=merged["value_error"],
+                        array=merged["value_error"] / scale,
                         visible=True
                     )
                     # Update x and y to use merged data
                     trace_kwargs["x"] = merged["timestamp"]
-                    trace_kwargs["y"] = merged["value"]
+                    trace_kwargs["y"] = merged["value"] / scale
 
         # Add trace for this benchmark
         fig.add_trace(go.Scatter(**trace_kwargs))
 
     # Update layout with metric information
     y_axis_label = f"{metric.display_name}"
-    if metric.unit:
-        y_axis_label += f" ({metric.unit})"
+    if plot_unit:
+        y_axis_label += f" ({plot_unit})"
 
     fig.update_layout(
         xaxis_title="Run",

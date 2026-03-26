@@ -1,3 +1,25 @@
+def format_memory(bytes_value, digits=2):
+    """
+    Format a memory size in bytes using binary units (KiB, MiB, GiB).
+    Returns (value_str, unit).
+    """
+    if bytes_value is None:
+        return "-", ""
+
+    try:
+        num_bytes = int(bytes_value)
+    except (TypeError, ValueError):
+        return str(bytes_value), ""
+
+    units = ["B", "KiB", "MiB", "GiB", "TiB"]
+
+    for unit in units:
+        if abs(num_bytes) < 1024:
+            return f"{num_bytes:.{digits}f}", unit
+        num_bytes /= 1024
+
+    return f"{num_bytes:.{digits}f}", units[-1]
+
 def format_duration(seconds, digits=3):
     """
     Format a duration in seconds using the most appropriate unit.

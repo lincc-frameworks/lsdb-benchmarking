@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from pytest import fixture
 from distributed import Client, get_task_stream, performance_report
+from distributed.diagnostics.memory_sampler import MemorySampler
 
 
 @fixture
@@ -46,10 +47,15 @@ def lbench_dask(lbench, benchmark, single_thread_dask_client: Client, benchmark_
         report_uuid = str(uuid.uuid4())
         performance_report_path = benchmark_results_dir / f"dask_performance_report_{report_uuid}.html"
 
+        ms = MemorySampler()
         with performance_report(filename=performance_report_path):
-            with get_task_stream(single_thread_dask_client) as ts:
-                func(*args, **kwargs)
-            # ts is now a TaskStream object
+            with ms.sample("benchmark"):
+                with get_task_stream(single_thread_dask_client) as ts:
+                    func(*args, **kwargs)
+
+        memory_df = ms.to_pandas()
+        if not memory_df.empty and "benchmark" in memory_df.columns:
+            extra_metrics["peak_memory_bytes"] = int(memory_df["benchmark"].max())
         extra_metrics["n_tasks"] = len(ts.data)  # number of tasks executed
         extra_metrics["keys"] = [t["key"] for t in ts.data]
         extra_metrics["startstops"] = [t["startstops"] for t in ts.data]

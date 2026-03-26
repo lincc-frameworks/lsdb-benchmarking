@@ -8,7 +8,7 @@ class CountMetric(Metric):
     """Metric for counts (rounds, iterations)."""
 
     def __init__(self, name: str, display_name: str, stats_key: str = None):
-        super().__init__(name, display_name, unit="", description=f"Number of {name}")
+        super().__init__(name, display_name, description=f"Number of {name}")
         self.stats_key = stats_key or name
 
     def extract(self, benchmark_data: dict) -> Optional[float]:
@@ -28,5 +28,8 @@ class CountMetric(Metric):
 execution_group = MetricGroup(
     "execution",
     "Execution Info",
-    [CountMetric("rounds", "Rounds"), CountMetric("iterations", "Iterations")]
+    [
+        CountMetric("rounds", "Rounds"),
+        CountMetric("iterations", "Iterations")
+    ]
 )
