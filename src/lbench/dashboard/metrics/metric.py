@@ -79,14 +79,6 @@ class Metric(ABC):
         """
         return 1.0, self.unit
 
-    def supports_error_bars(self) -> bool:
-        """Check if this metric supports error bars in trend plots.
-
-        Returns:
-            True if error bars are available
-        """
-        return False
-
     def get_error_bar_metric(self) -> Optional['Metric']:
         """Get the metric to use for error bars (e.g., stddev for mean).
 

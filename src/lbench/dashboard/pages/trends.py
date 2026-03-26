@@ -76,11 +76,6 @@ def update_trend_plot(selected_benchmarks, selected_metric_name):
 
     fig = go.Figure()
 
-    # Check if this metric supports error bars
-    error_bar_metric = None
-    if metric.supports_error_bars():
-        error_bar_metric = metric.get_error_bar_metric()
-
     # Collect all series first so we can pick a consistent scale across benchmarks
     series = {b: BENCHMARK_COLLECTION.get_metric_series(b, metric) for b in selected_benchmarks}
     series = {b: df for b, df in series.items() if not df.empty}
@@ -100,8 +95,11 @@ def update_trend_plot(selected_benchmarks, selected_metric_name):
             "name": benchmark,
         }
 
+        # Check if this metric supports error bars
+        error_bar_metric = metric.get_error_bar_metric()
+
         # Add error bars if available
-        if error_bar_metric:
+        if error_bar_metric is not None:
             error_df = BENCHMARK_COLLECTION.get_metric_series(benchmark, error_bar_metric)
             if not error_df.empty:
                 # Merge error data with main data
