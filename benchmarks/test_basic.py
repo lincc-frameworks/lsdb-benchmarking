@@ -1,5 +1,6 @@
 import time
 
+import pytest
 from dask import delayed
 
 
@@ -9,6 +10,13 @@ def test_sleep(lbench):
 
     lbench(sleep_function)
 
+@pytest.mark.lbench_memory
+def test_sleep_with_mem(lbench):
+    def sleep_with_mem():
+        _ = [0] * 1_000_000
+        time.sleep(0.1)
+
+    lbench(sleep_with_mem)
 
 def test_dask_sleep(lbench_dask):
     @delayed

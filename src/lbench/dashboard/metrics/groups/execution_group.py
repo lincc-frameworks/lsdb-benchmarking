@@ -1,6 +1,6 @@
 from typing import Optional
 
-from lbench.dashboard.metrics import Metric
+from lbench.dashboard.metrics import Metric, MemoryMetric
 from lbench.dashboard.metrics.metric_group import MetricGroup
 
 
@@ -25,11 +25,25 @@ class CountMetric(Metric):
         return str(int(value))
 
 
+class PeakMemory(MemoryMetric):
+    """Metric for peak process memory."""
+
+    def __init__(self):
+        super().__init__("peak_memory", "Peak Memory")
+
+    def extract(self, benchmark_data: dict) -> Optional[float]:
+        try:
+            value = benchmark_data.get("extra_info", {}).get("peak_memory_bytes")
+            return float(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
 execution_group = MetricGroup(
     "execution",
     "Execution Info",
     [
         CountMetric("rounds", "Rounds"),
-        CountMetric("iterations", "Iterations")
+        CountMetric("iterations", "Iterations"),
+        PeakMemory(),
     ]
 )
