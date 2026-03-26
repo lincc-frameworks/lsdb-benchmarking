@@ -3,34 +3,11 @@ from dash import html, Input, Output, dcc, callback
 import dash_bootstrap_components as dbc
 import pandas as pd
 from pathlib import Path
-from lbench.dashboard.app import RUN_DATA, BENCHMARK_COLLECTION
-from lbench.dashboard.metrics import registry
+from lbench.dashboard.app import RUN_DATA
+from lbench.dashboard.context import registry
+from lbench.dashboard.utils import format_duration
 
 dash.register_page(__name__, path='/', name='Runs')
-
-# --- Helper functions ---
-def format_duration(seconds, digits=3):
-    """
-    Format a duration in seconds using the most appropriate unit.
-    Returns (value_str, unit).
-    """
-    if seconds is None:
-        return "-", ""
-
-    try:
-        seconds = float(seconds)
-    except (TypeError, ValueError):
-        return str(seconds), ""
-
-    if seconds >= 1:
-        return f"{seconds:.{digits}f}", "s"
-    elif seconds >= 1e-3:
-        return f"{seconds * 1e3:.{digits}f}", "ms"
-    elif seconds >= 1e-6:
-        return f"{seconds * 1e6:.{digits}f}", "µs"
-    else:
-        return f"{seconds * 1e9:.{digits}f}", "ns"
-
 
 def benchmark_to_table(bm, run_name):
     """Create table cards for a benchmark using metric groups."""

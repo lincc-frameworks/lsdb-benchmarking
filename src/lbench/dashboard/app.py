@@ -11,7 +11,7 @@ from tuna.main import read, render
 from tuna import __file__ as tuna_file
 
 from lbench.cli.env import get_lbench_root_dir
-from lbench.dashboard.metrics import BenchmarkCollection
+from lbench.dashboard.metrics.benchmark_collection import BenchmarkCollection
 
 TUNA_WEB_DIR = Path(tuna_file).parent / "web"
 
@@ -49,7 +49,6 @@ RUN_DATA = load_all_runs(ROOT_DIR)
 
 # Initialize metrics collection
 BENCHMARK_COLLECTION = BenchmarkCollection(RUN_DATA)
-
 
 # --- Dash app ---
 app = dash.Dash(
