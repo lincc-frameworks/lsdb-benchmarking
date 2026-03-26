@@ -3,8 +3,8 @@ from dataclasses import field, dataclass
 from datetime import datetime
 from typing import Optional, Dict, List
 
-from lbench.dashboard.context import registry
 from lbench.dashboard.metrics.metric import Metric
+from lbench.dashboard.metrics.registry import MetricRegistry
 
 
 @dataclass
@@ -30,7 +30,7 @@ class BenchmarkRun:
             self._metric_cache[metric.name] = metric.extract(self.raw_data)
         return self._metric_cache[metric.name]
 
-    def get_available_metrics(self) -> List[Metric]:
+    def get_available_metrics(self, registry: "MetricRegistry") -> List[Metric]:
         """Get all metrics available for this run."""
         return registry.get_available_metrics(self.raw_data)
 
@@ -42,12 +42,13 @@ class BenchmarkRun:
 class BenchmarkCollection:
     """Collection of all benchmark runs with querying capabilities."""
 
-    def __init__(self, run_data: dict):
+    def __init__(self, run_data: dict, registry: MetricRegistry):
         """Initialize from raw run data.
 
         Args:
             run_data: Dict mapping run_id -> benchmark data (from load_all_runs)
         """
+        self._registry = registry
         self.runs: List[BenchmarkRun] = []
         self._benchmark_index: Dict[str, List[BenchmarkRun]] = {}
 
@@ -133,11 +134,11 @@ class BenchmarkCollection:
         # Get union of all available metrics across all runs
         available = set()
         for run in runs:
-            for metric in run.get_available_metrics():
+            for metric in run.get_available_metrics(self._registry):
                 available.add(metric.name)
 
         # Return metric objects in a consistent order
-        return [m for m in registry.list_all() if m.name in available]
+        return [m for m in self._registry.list_all() if m.name in available]
 
     def get_common_metrics(self) -> List[Metric]:
         """Get metrics that are available across most benchmarks.
@@ -157,4 +158,4 @@ class BenchmarkCollection:
 
         # Return metrics available in at least one benchmark
         available_names = set(metric_counts.keys())
-        return [m for m in registry.list_all() if m.name in available_names]
+        return [m for m in self._registry.list_all() if m.name in available_names]

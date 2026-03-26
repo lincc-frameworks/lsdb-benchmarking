@@ -2,8 +2,7 @@ import dash
 from dash import html, Input, Output, dcc, callback
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-from lbench.dashboard.app import BENCHMARK_COLLECTION
-from lbench.dashboard.context import registry
+from lbench.dashboard.context import registry, BENCHMARK_COLLECTION
 
 dash.register_page(__name__, path='/trends', name='Trends')
 
