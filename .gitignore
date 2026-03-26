@@ -1,1 +1,8 @@
 *.egg-info/
+*.cpython*.pyc
+*cprofile*.prof
+*pytest-benchmark.json
+*.pytest_cache/
+__pycache__/
+.ipynb_checkpoints/
+dask_performance_report*.html
