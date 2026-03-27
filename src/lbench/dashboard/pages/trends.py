@@ -95,11 +95,16 @@ def update_trend_plot(selected_benchmarks, selected_metric_name):
             "name": benchmark,
         }
 
-        # Check if this metric supports error bars
-        error_bar_metric = metric.get_error_bar_metric()
+        # Check if this metric supports error bars through its group
+        error_bar_config = None
+        for group in registry.list_groups():
+            if metric in group.metrics:
+                error_bar_config = group.get_error_bar_config(metric)
+                break
 
         # Add error bars if available
-        if error_bar_metric is not None:
+        if error_bar_config:
+            error_bar_metric = error_bar_config["metric"]
             error_df = BENCHMARK_COLLECTION.get_metric_series(benchmark, error_bar_metric)
             if not error_df.empty:
                 # Merge error data with main data
