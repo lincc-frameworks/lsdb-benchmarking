@@ -1,20 +1,6 @@
 import dash
-from dash import html, dcc
+from lbench.dashboard.layout import layout
 import dash_bootstrap_components as dbc
-
-
-def create_navbar():
-    return dbc.NavbarSimple(
-        brand="lbench Dashboard",
-        brand_href="/",
-        color="primary",
-        dark=True,
-        children=[
-            dbc.NavItem(dcc.Link("Runs", href="/", className="nav-link")),
-            dbc.NavItem(dcc.Link("Trends", href="/trends", className="nav-link")),
-        ],
-        sticky="top",
-    )
 
 app = dash.Dash(
     __name__,
@@ -22,17 +8,9 @@ app = dash.Dash(
         dbc.themes.FLATLY,
         "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
     ],
-    use_pages=True
-)
-app.title = "lbench Dashboard"
-app.layout = html.Div(
-    [
-        dcc.Location(id="url", refresh=False),
-        create_navbar(),
-        dash.page_container,
-    ]
 )
 
 def run_dashboard(port=8050):
-    import lbench.dashboard.routes
+    app.title = "lbench Dashboard"
+    app.layout = layout
     app.run(debug=True, port=port)
