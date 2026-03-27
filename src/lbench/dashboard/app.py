@@ -17,7 +17,12 @@ def create_navbar():
     )
 
 app = dash.Dash(
-    __name__, external_stylesheets=[dbc.themes.FLATLY], use_pages=True
+    __name__,
+    external_stylesheets=[
+        dbc.themes.FLATLY,
+        "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+    ],
+    use_pages=True
 )
 app.title = "lbench Dashboard"
 app.layout = html.Div(

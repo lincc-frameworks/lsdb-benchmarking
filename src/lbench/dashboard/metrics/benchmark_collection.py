@@ -55,7 +55,7 @@ class BenchmarkCollection:
         # Parse all runs
         for run_id, run_info in run_data.items():
             try:
-                timestamp = pd.to_datetime(run_id)
+                timestamp = pd.to_datetime(run_info.get("datetime"))
             except (ValueError, TypeError):
                 timestamp = None
 
