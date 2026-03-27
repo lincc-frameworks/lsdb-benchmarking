@@ -34,4 +34,5 @@ app.layout = html.Div(
 )
 
 def run_dashboard(port=8050):
+    import lbench.dashboard.routes
     app.run(debug=True, port=port)
