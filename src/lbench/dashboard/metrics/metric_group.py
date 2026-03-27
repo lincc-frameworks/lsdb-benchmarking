@@ -100,20 +100,6 @@ class MetricGroup:
             return self.get_available_metrics(benchmark_data)
         return self.metrics
 
-    def get_error_bar_config(self, metric: Metric) -> Optional[Dict[str, Any]]:
-        """Get error bar configuration for a specific metric when plotting.
-
-        Args:
-            metric: The metric being plotted
-
-        Returns:
-            Dict with:
-                - 'metric': The Metric to use for error bars
-                - 'type': 'symmetric' or 'asymmetric'
-            or None if no error bars
-        """
-        return None  # Default: no error bars
-
     def get_action_buttons(self, benchmark_data: dict, run_name: str) -> List[Any]:
         """Get action buttons for this metric group (e.g., "Open Report", "View Flamegraph").
 

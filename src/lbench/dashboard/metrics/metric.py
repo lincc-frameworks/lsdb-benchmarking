@@ -6,7 +6,7 @@ from benchmark runs. It's designed to be extensible and resilient to missing dat
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from lbench.dashboard.utils import format_duration, format_memory
 
@@ -79,11 +79,14 @@ class Metric(ABC):
         """
         return 1.0, self.unit
 
-    def get_error_bar_metric(self) -> Optional['Metric']:
-        """Get the metric to use for error bars (e.g., stddev for mean).
+    def get_error_bar_config(self) -> Optional[Dict[str, Any]]:
+        """Get error bar configuration for this metric when plotting.
 
         Returns:
-            Metric for error bars or None
+            Dict with:
+                - 'metric': The Metric to use for error bars
+                - 'type': 'symmetric' or 'asymmetric'
+            or None if no error bars
         """
         return None
 
