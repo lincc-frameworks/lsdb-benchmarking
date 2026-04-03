@@ -10,7 +10,8 @@ app = dash.Dash(
     ],
 )
 
-def run_dashboard(port=8050):
+
+def run_dashboard(port=8050, **kwargs):
     app.title = "lbench Dashboard"
     app.layout = layout
-    app.run(debug=True, port=port)
+    app.run(debug=True, port=port, **kwargs)

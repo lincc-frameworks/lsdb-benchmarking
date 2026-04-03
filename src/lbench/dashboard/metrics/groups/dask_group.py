@@ -73,6 +73,38 @@ class DaskPeakMemory(DaskMetric, MemoryMetric):
         return None
 
 
+class DaskGraphLength(DaskMetric):
+    """Size of dask graph"""
+
+    def __init__(self):
+        super().__init__("dask_graph_length", "Dask Graph Length")
+
+    def extract(self, benchmark_data: dict) -> Optional[float]:
+        dask_stats = self.get_dask_stats(benchmark_data)
+        if dask_stats:
+            try:
+                return dask_stats.get("dask_graph_len", None)
+            except (TypeError, ValueError):
+                pass
+        return None
+
+
+class DaskGraphSize(DaskMetric, MemoryMetric):
+    """Memory size of dask graph"""
+
+    def __init__(self):
+        super().__init__("dask_graph_size_bytes", "Dask Graph Size")
+
+    def extract(self, benchmark_data: dict) -> Optional[float]:
+        dask_stats = self.get_dask_stats(benchmark_data)
+        if dask_stats:
+            try:
+                return dask_stats.get("dask_graph_size_bytes", None)
+            except (TypeError, ValueError):
+                pass
+        return None
+
+
 class DaskGroup(MetricGroup):
     """Dask metric group with custom rendering for task breakdown and action buttons."""
 
@@ -124,7 +156,8 @@ class DaskGroup(MetricGroup):
                 })
 
                 components.append(html.H5("Dask Task Times", className="card-title mt-3"))
-                components.append(dbc.Table.from_dataframe(task_table, striped=True, bordered=True, hover=True))
+                components.append(
+                    dbc.Table.from_dataframe(task_table, striped=True, bordered=True, hover=True))
 
         return dbc.CardBody(components) if components else None
 
@@ -155,5 +188,5 @@ class DaskGroup(MetricGroup):
 dask_group = DaskGroup(
     "dask",
     "Dask Metrics",
-    [DaskTaskCount(), DaskTotalTime(), DaskPeakMemory()]
+    [DaskTaskCount(), DaskTotalTime(), DaskPeakMemory(), DaskGraphLength(), DaskGraphSize()]
 )

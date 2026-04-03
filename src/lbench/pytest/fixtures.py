@@ -1,6 +1,7 @@
 import cProfile
 import uuid
 from pathlib import Path
+import sys
 
 import memray
 import pytest
@@ -77,3 +78,23 @@ def lbench_dask(lbench, benchmark, single_thread_dask_client: Client, benchmark_
         benchmark.extra_info["dask"] = extra_metrics
 
     return dask_benchmark_func
+
+
+@fixture
+def lbench_dask_collection(lbench_dask, benchmark):
+    def collection_benchmark_func(collection):
+        run_func = lambda: collection.compute()
+        graph = collection.dask
+
+        # Measure graph length
+        graph_len = len(graph)
+
+        # Measure graph size in memory
+        graph_size = 0
+        for key in graph.keys():
+            graph_size += sys.getsizeof(graph[key])
+        lbench_dask(run_func)
+        benchmark.extra_info["dask"]["dask_graph_len"] = graph_len
+        benchmark.extra_info["dask"]["dask_graph_size_bytes"] = graph_size
+
+    return collection_benchmark_func

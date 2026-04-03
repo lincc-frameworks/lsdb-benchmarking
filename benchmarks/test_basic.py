@@ -10,6 +10,7 @@ def test_sleep(lbench):
 
     lbench(sleep_function)
 
+
 @pytest.mark.lbench_memory
 def test_sleep_with_mem(lbench):
     def sleep_with_mem():
@@ -17,6 +18,7 @@ def test_sleep_with_mem(lbench):
         time.sleep(0.1)
 
     lbench(sleep_with_mem)
+
 
 def test_dask_sleep(lbench_dask):
     @delayed
@@ -27,3 +29,11 @@ def test_dask_sleep(lbench_dask):
         sleep_function().compute()
 
     lbench_dask(dask_sleep_function)
+
+
+def test_dask_sleep_col(lbench_dask_collection):
+    @delayed
+    def sleep_function():
+        time.sleep(0.1)
+
+    lbench_dask_collection(sleep_function())
