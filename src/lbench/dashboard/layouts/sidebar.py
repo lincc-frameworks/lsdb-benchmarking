@@ -106,14 +106,17 @@ def sidebar_panel():
                     ),
                     html.Div(
                         [
-                            dbc.Button("Apply", id="apply-filter-btn", color="primary", size="sm", className="me-1"),
+                            dbc.Button("Apply", id="apply-filter-btn", color="primary", size="sm",
+                                       className="me-1"),
                             dbc.Button("Clear", id="clear-filter-btn", color="secondary", size="sm"),
-                            dbc.Button("Plot series", id="plot-range-btn", color="success", size="sm", style={"marginLeft": "auto"}),
+                            dbc.Button("Plot series", id="plot-range-btn", color="success", size="sm",
+                                       style={"marginLeft": "auto"}),
                         ],
                         style={"marginTop": "10px", "display": "flex"},
                     ),
                 ],
-                style={"borderTop": "1px solid #ccc", "padding": "1em 0", "flexShrink": "0"},
+                style={"borderTop": "1px solid #ccc", "padding": "1em 0", "flexShrink": "0",
+                       "position": "relative", "zIndex": 10},
             ),
             html.Div(
                 id="sidebar-container",
@@ -194,7 +197,8 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data, date_filter):
         idx = triggered.get("index")
         if idx is not None:
             run_name = list(filtered_run_data.keys())[idx]
-            return benchmarks_to_tables(run_name, run_data[run_name]), create_sidebar(filtered_run_data, active_run=run_name)
+            return benchmarks_to_tables(run_name, run_data[run_name]), create_sidebar(filtered_run_data,
+                                                                                      active_run=run_name)
 
     return placeholder("Select a run from the sidebar or plot series"), create_sidebar(filtered_run_data)
 

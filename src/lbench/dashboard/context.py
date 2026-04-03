@@ -36,7 +36,7 @@ def load_all_runs(root_dir):
             data = load_run_json(p)
             if data:
                 runs[p.name] = data
-    return dict(sorted(runs.items(), reverse=True))
+    return dict(sorted(runs.items(), key=lambda kv: kv[1].get("datetime", ""), reverse=True))
 
 
 def rename_run(old_name, new_name):
