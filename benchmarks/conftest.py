@@ -1,3 +1,5 @@
+import os
+
 from upath import UPath
 from pytest import fixture
 import pyarrow.dataset
@@ -6,7 +8,8 @@ import lsdb
 
 @fixture
 def catalog_local_dir() -> UPath:
-    return UPath("/epyc/data3/hats/catalogs")
+    root = os.environ.get("CATALOG_LOCAL_DIR", "/epyc/data3/hats/catalogs")
+    return UPath(root)
 
 
 @fixture
