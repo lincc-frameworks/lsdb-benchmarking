@@ -1,9 +1,11 @@
-import cProfile
-import uuid
 from pathlib import Path
+import sys
+
 import pytest
 from pytest import fixture
-from distributed import Client, get_task_stream, performance_report
+from distributed import Client
+
+from lbench.runner import run_cprofile, run_dask_benchmark, run_memray
 
 
 @fixture
@@ -21,18 +23,18 @@ def benchmark_results_dir(pytestconfig) -> Path:
 
 
 @fixture
-def lbench(benchmark_results_dir: Path, benchmark):
+def lbench(benchmark_results_dir: Path, benchmark, request):
     def lbench_benchmark_func(func, *args, **kwargs):
-        benchmark(func, *args, *kwargs)
+        benchmark(func, *args, **kwargs)
 
-        cprof_uuid = str(uuid.uuid4())
-        cprof_output_path = benchmark_results_dir / f"cprofile_{cprof_uuid}.prof"
+        track_memory = request.node.get_closest_marker("lbench_memory") is not None
 
-        with cProfile.Profile() as pr:
-            func(*args, **kwargs)
-        pr.dump_stats(cprof_output_path)
+        if track_memory:
+            peak_memory = run_memray(func, benchmark_results_dir, *args, **kwargs)
+            benchmark.extra_info["peak_memory_bytes"] = peak_memory
 
-        benchmark.extra_info["cprofile_path"] = str(cprof_output_path)
+        cprof_path = run_cprofile(func, benchmark_results_dir, *args, **kwargs)
+        benchmark.extra_info["cprofile_path"] = cprof_path
 
     return lbench_benchmark_func
 
@@ -41,22 +43,24 @@ def lbench(benchmark_results_dir: Path, benchmark):
 def lbench_dask(lbench, benchmark, single_thread_dask_client: Client, benchmark_results_dir: Path):
     def dask_benchmark_func(func, *args, **kwargs):
         lbench(func, *args, **kwargs)
-        extra_metrics = {}
-        with get_task_stream(single_thread_dask_client) as ts:
-            func(*args, **kwargs)
-        # ts is now a TaskStream object
-        extra_metrics["n_tasks"] = len(ts.data)  # number of tasks executed
-        extra_metrics["keys"] = [t["key"] for t in ts.data]
-        extra_metrics["startstops"] = [t["startstops"] for t in ts.data]
-
-        report_uuid = str(uuid.uuid4())
-        performance_report_path = benchmark_results_dir / f"dask_performance_report_{report_uuid}.html"
-
-        with performance_report(filename=performance_report_path):
-            func(*args, **kwargs)
-
-        extra_metrics["performance_report"] = str(performance_report_path)
-
-        benchmark.extra_info["dask"] = extra_metrics
+        benchmark.extra_info["dask"] = run_dask_benchmark(
+            func, benchmark_results_dir, single_thread_dask_client, *args, **kwargs
+        )
 
     return dask_benchmark_func
+
+
+@fixture
+def lbench_dask_collection(lbench_dask, benchmark):
+    def collection_benchmark_func(collection):
+        run_func = lambda: collection.compute()
+        graph = collection.dask
+
+        graph_len = len(graph)
+        graph_size = sum(sys.getsizeof(graph[key]) for key in graph.keys())
+
+        lbench_dask(run_func)
+        benchmark.extra_info["dask"]["dask_graph_len"] = graph_len
+        benchmark.extra_info["dask"]["dask_graph_size_bytes"] = graph_size
+
+    return collection_benchmark_func

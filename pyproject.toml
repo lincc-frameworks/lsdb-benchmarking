@@ -8,7 +8,8 @@ dependencies = [
     "dash",
     "dash-bootstrap-components",
     "pandas",
-    "tuna"
+    "tuna",
+    "memray"
 ]
 
 [build-system]
