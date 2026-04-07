@@ -1,0 +1,31 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: self-hosted
+
+    env:
+      CATALOG_LOCAL_DIR: /mnt/data/hats/catalogs
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv pip install --python 3.14 . lsdb nested-pandas
+
+      - name: Run benchmark
+        run: >
+          uv run --python 3.14 pytest benchmarks/test_io.py
+          -k "test_lsdb_single_partition and local"
+          --lbench
