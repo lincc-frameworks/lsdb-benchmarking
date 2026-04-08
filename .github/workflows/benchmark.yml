@@ -29,3 +29,8 @@ jobs:
           uv run --python 3.14 pytest benchmarks/test_io.py
           -k "test_lsdb_single_partition and local"
           --lbench
+
+      - name: Run crossmatch benchmarks
+        run: >
+          uv run --python 3.14 pytest benchmarks/test_crossmatch.py
+          --lbench
