@@ -4,5 +4,7 @@
 *pytest-benchmark.json
 *.pytest_cache/
 __pycache__/
+.idea/
 .ipynb_checkpoints/
 dask_performance_report*.html
+lbench_results/

@@ -21,3 +21,8 @@ lbench = "lbench.cli.lbench:app"
 
 [project.entry-points.pytest11]
 lbench = "lbench.pytest"
+
+[tool.pytest.ini_options]
+markers = [
+    "lbench_memory: mark test to capture memory usage"
+]
