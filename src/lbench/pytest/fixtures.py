@@ -59,10 +59,8 @@ def lbench_dask_collection(lbench_dask, benchmark):
         graph = collection.dask
 
         graph_len = len(graph)
-        graph_size = sizeof(graph)
 
         lbench_dask(run_func)
         benchmark.extra_info["dask"]["dask_graph_len"] = graph_len
-        benchmark.extra_info["dask"]["dask_graph_size_bytes"] = graph_size
 
     return collection_benchmark_func
