@@ -1,6 +1,7 @@
 from typing import Optional
 
 from lbench.dashboard.metrics import Metric, DurationMetric, MemoryMetric
+from lbench.dashboard.metrics.groups.execution_group import CountMetric
 from lbench.dashboard.metrics.metric_group import MetricGroup
 
 
@@ -15,7 +16,7 @@ class DaskMetric(Metric):
             return None
 
 
-class DaskTaskCount(DaskMetric):
+class DaskTaskCount(DaskMetric, CountMetric):
     """Number of Dask tasks."""
 
     def __init__(self):
@@ -29,11 +30,6 @@ class DaskTaskCount(DaskMetric):
             except (TypeError, ValueError):
                 pass
         return None
-
-    def format_value(self, value: Optional[float]) -> str:
-        if value is None:
-            return "-"
-        return str(int(value))
 
 
 class DaskTotalTime(DaskMetric, DurationMetric):
@@ -73,7 +69,7 @@ class DaskPeakMemory(DaskMetric, MemoryMetric):
         return None
 
 
-class DaskGraphLength(DaskMetric):
+class DaskGraphLength(DaskMetric, CountMetric):
     """Size of dask graph"""
 
     def __init__(self):
