@@ -7,12 +7,13 @@ from lbench.dashboard.metrics import MetricRegistry
 from lbench.dashboard.metrics.benchmark_collection import BenchmarkCollection
 from lbench.dashboard.metrics.groups import stats_group, execution_group, dask_group, profiling_group
 
-"""Registry for available metrics"""
+# Registry for available metrics — constant, built once at startup
 registry = MetricRegistry()
 for group in [stats_group, execution_group, dask_group, profiling_group]:
     registry.register_group(group)
 
-"""Load information about runs"""
+# Root directory where benchmark runs are stored — constant
+ROOT_DIR = get_lbench_root_dir()
 
 
 def load_run_json(run_dir):
@@ -39,58 +40,34 @@ def load_all_runs(root_dir):
     return dict(sorted(runs.items(), key=lambda kv: kv[1].get("datetime", ""), reverse=True))
 
 
+def get_collection(run_data: dict) -> BenchmarkCollection:
+    """Build a BenchmarkCollection from raw run data (e.g. from run-data-store)."""
+    return BenchmarkCollection(run_data or {}, registry)
+
+
 def rename_run(old_name, new_name):
     """Rename a benchmark run folder.
 
-    Args:
-        old_name: Current folder name
-        new_name: New folder name
-
     Returns:
-        tuple: (success: bool, message: str, new_run_data: dict, new_collection: BenchmarkCollection)
+        tuple: (success: bool, message: str, new_run_data: dict)
     """
-    global RUN_DATA, BENCHMARK_COLLECTION
-
-    # Validate names
     if not old_name or not new_name:
-        return False, "Names cannot be empty", RUN_DATA, BENCHMARK_COLLECTION
+        return False, "Names cannot be empty", None
 
     if old_name == new_name:
-        return False, "New name is the same as old name", RUN_DATA, BENCHMARK_COLLECTION
+        return False, "New name is the same as old name", None
 
     old_path = ROOT_DIR / old_name
     new_path = ROOT_DIR / new_name
 
-    # Check if old path exists
     if not old_path.exists():
-        return False, f"Run '{old_name}' not found", RUN_DATA, BENCHMARK_COLLECTION
+        return False, f"Run '{old_name}' not found", None
 
-    # Check if new path already exists
     if new_path.exists():
-        return False, f"Run '{new_name}' already exists", RUN_DATA, BENCHMARK_COLLECTION
+        return False, f"Run '{new_name}' already exists", None
 
     try:
-        # Rename the folder
         shutil.move(str(old_path), str(new_path))
-
-        # Reload all run data
-        new_run_data = load_all_runs(ROOT_DIR)
-        new_collection = BenchmarkCollection(new_run_data, registry)
-
-        # Update globals
-        RUN_DATA = new_run_data
-        BENCHMARK_COLLECTION = new_collection
-
-        return True, f"Successfully renamed '{old_name}' to '{new_name}'", new_run_data, new_collection
+        return True, f"Successfully renamed '{old_name}' to '{new_name}'", load_all_runs(ROOT_DIR)
     except Exception as e:
-        return False, f"Error renaming run: {str(e)}", RUN_DATA, BENCHMARK_COLLECTION
-
-
-# Root directory where benchmark runs are stored
-ROOT_DIR = get_lbench_root_dir()
-
-# Global run data (needs to be defined before importing pages)
-RUN_DATA = load_all_runs(ROOT_DIR)
-
-# Initialize metrics collection
-BENCHMARK_COLLECTION = BenchmarkCollection(RUN_DATA, registry)
+        return False, f"Error renaming run: {str(e)}", None
