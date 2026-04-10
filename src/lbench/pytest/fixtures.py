@@ -1,6 +1,8 @@
 from pathlib import Path
 import sys
 
+from dask.sizeof import sizeof
+
 import pytest
 from pytest import fixture
 from distributed import Client
@@ -57,7 +59,7 @@ def lbench_dask_collection(lbench_dask, benchmark):
         graph = collection.dask
 
         graph_len = len(graph)
-        graph_size = sum(sys.getsizeof(graph[key]) for key in graph.keys())
+        graph_size = sizeof(graph)
 
         lbench_dask(run_func)
         benchmark.extra_info["dask"]["dask_graph_len"] = graph_len
