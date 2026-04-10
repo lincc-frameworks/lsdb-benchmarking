@@ -20,6 +20,7 @@ dependencies = [
     "pytest",
     "pytest-benchmark",
     "typer",
+    "dask",
     "dash",
     "dash-bootstrap-components",
     "pandas",
