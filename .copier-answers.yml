@@ -5,9 +5,7 @@ author_email: seanmcgu@andrew.cmu.edu
 author_name: LINCC Frameworks
 create_example_module: false
 custom_install: custom
-enforce_style:
-- ruff_lint
-- ruff_format
+enforce_style: []
 failure_notification: []
 include_benchmarks: false
 include_docs: true
