@@ -3,7 +3,7 @@ import pandas as pd
 from dash import html, Input, Output, State, dcc, callback, no_update
 import dash_bootstrap_components as dbc
 
-from lbench.dashboard.context import RUN_DATA, rename_run
+from lbench.dashboard.context import rename_run
 from lbench.dashboard.layouts.tables import benchmarks_to_tables
 
 
@@ -120,7 +120,7 @@ def sidebar_panel():
             ),
             html.Div(
                 id="sidebar-container",
-                children=create_sidebar(RUN_DATA),
+                children=create_sidebar({}),
                 style={"overflowY": "auto", "flex": "1", "minHeight": "0"},
             ),
         ],
@@ -256,7 +256,7 @@ def handle_rename(edit_clicks, cancel_clicks, confirm_clicks, old_name, new_name
         return False, "", "", "", no_update
 
     if triggered_id == "rename-confirm-btn" and confirm_clicks:
-        success, message, new_run_data, _ = rename_run(old_name, new_name)
+        success, message, new_run_data = rename_run(old_name, new_name)
         if success:
             return False, "", "", "", new_run_data
         return no_update, no_update, no_update, message, no_update
