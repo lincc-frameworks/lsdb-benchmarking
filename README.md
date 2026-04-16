@@ -5,6 +5,13 @@ run, and analyze benchmarks for Python projects. It provides automatic result lo
 flamegraphs, Dask performance reporting, memory tracking, a Jupyter notebook magic, and a dashboard for
 visualizing and comparing benchmark results over time.
 
+[![Template](https://img.shields.io/badge/Template-LINCC%20Frameworks%20Python%20Project%20Template-brightgreen)](https://lincc-ppt.readthedocs.io/en/latest/)
+
+[![PyPI](https://img.shields.io/pypi/v/lbench?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/{{project_name}}/)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lincc-frameworks/lsdb-benchmarking/smoke-test.yml)](https://github.com/lincc-frameworks/lsdb-benchmarking/actions/workflows/smoke-test.yml)
+[![Codecov](https://codecov.io/gh/lincc-frameworks/lsdb-benchmarking/branch/main/graph/badge.svg)](https://codecov.io/gh/{{project_organization}}/{{project_name}})
+[![Read The Docs](https://img.shields.io/readthedocs/lbench)](https://lbench.readthedocs.io/)
+
 ## Installation
 
 ```bash
@@ -62,6 +69,7 @@ pytest --lbench benchmarks/
 ```
 
 This creates a timestamped result directory, runs all benchmarks, and saves:
+
 - `pytest-benchmark.json` — timing stats and extra metrics
 - `cprofile_*.prof` — cProfile data for each benchmark
 - `dask_performance_report_*.html` — Dask performance reports (Dask benchmarks only)
@@ -88,7 +96,8 @@ so notebook results appear alongside pytest results in the dashboard.
 Load the extension once per notebook:
 
 ```python
-%load_ext lbench.notebook
+%load_ext
+lbench.notebook
 ```
 
 Then use the cell magic on any cell:
@@ -101,30 +110,35 @@ my_expensive_function()
 With options:
 
 ```python
-%%lbench --rounds 10 --warmup --memory --profile --name my_benchmark
+%%lbench - -rounds
+10 - -warmup - -memory - -profile - -name
+my_benchmark
 my_expensive_function()
 ```
 
 Available options:
 
-| Option | Short | Description |
-|---|---|---|
-| `--rounds N` | `-r` | Number of timed rounds (default: 5) |
-| `--warmup` | `-w` | Run one un-timed warmup round first |
-| `--memory` | `-m` | Track peak memory with memray |
-| `--profile` | `-p` | Capture a cProfile `.prof` file |
-| `--dask` | `-d` | Collect Dask metrics (task stream, memory, performance report) |
-| `--collection VAR` | | Also record graph size/length from a Dask collection variable |
-| `--name NAME` | `-n` | Name for this benchmark entry |
+| Option             | Short | Description                                                    |
+|--------------------|-------|----------------------------------------------------------------|
+| `--rounds N`       | `-r`  | Number of timed rounds (default: 5)                            |
+| `--warmup`         | `-w`  | Run one un-timed warmup round first                            |
+| `--memory`         | `-m`  | Track peak memory with memray                                  |
+| `--profile`        | `-p`  | Capture a cProfile `.prof` file                                |
+| `--dask`           | `-d`  | Collect Dask metrics (task stream, memory, performance report) |
+| `--collection VAR` |       | Also record graph size/length from a Dask collection variable  |
+| `--name NAME`      | `-n`  | Name for this benchmark entry                                  |
 
 ### Dask benchmarks in notebooks
 
 ```python
-%%lbench --dask --rounds 3
+%%lbench - -dask - -rounds
+3
 my_collection.compute()
 
 # With graph stats from a named variable:
-%%lbench --dask --collection src_catalog --name catalog_scan
+%%lbench - -dask - -collection
+src_catalog - -name
+catalog_scan
 src_catalog.compute()
 ```
 
@@ -142,6 +156,7 @@ Or from a notebook:
 
 ```python
 from lbench.dashboard.app import run_dashboard
+
 run_dashboard(port=8050)
 ```
 
@@ -150,15 +165,18 @@ Calling `run_dashboard()` again will restart the server on the new settings.
 ### Dashboard Features
 
 **Run browser (sidebar)**
+
 - Lists all runs in chronological order
 - Filter runs by date range with the date picker
 - Rename runs with the pencil icon
 
 **Benchmark tables**
+
 - Per-benchmark cards showing timing stats, memory usage, and Dask metrics
 - Links to open flamegraphs (cProfile) and Dask performance reports directly in the browser
 
 **Trend plots**
+
 - Click "Plot series" to switch to the trend view
 - Select one or more benchmarks and a metric to plot performance over time
 - Error bars show standard deviation where available
@@ -168,6 +186,7 @@ Calling `run_dashboard()` again will restart the server on the new settings.
 
 ```python
 import pytest
+
 
 @pytest.mark.parametrize("size", [1000, 10000, 100000])
 def test_dataframe_operation(size, lbench):
