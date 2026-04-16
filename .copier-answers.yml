@@ -1,11 +1,12 @@
 # Changes here will be overwritten by Copier
 _commit: v2.2.0
 _src_path: gh:lincc-frameworks/python-project-template
-author_email: seanmcgu@andrew.cmu.edu
+author_email: lincc-frameworks-team@lists.lsst.org
 author_name: LINCC Frameworks
 create_example_module: false
 custom_install: custom
-enforce_style: []
+enforce_style:
+- black
 failure_notification: []
 include_benchmarks: false
 include_docs: true

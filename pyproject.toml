@@ -4,7 +4,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
 authors = [
-    { name = "LINCC Frameworks", email = "seanmcgu@andrew.cmu.edu" }
+    { name = "LINCC Frameworks", email = "lincc-frameworks-team@lists.lsst.org" }
 ]
 description = "Benchmarking tools for LSDB"
 classifiers = [
@@ -34,6 +34,7 @@ dependencies = [
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
 [project.optional-dependencies]
 dev = [
+    "black", # Used for static linting of files
     "jupyter", # Clears output from Jupyter notebooks
     "pre-commit", # Used to run checks before finalizing a git commit
     "pytest-cov", # Used to report total code coverage
@@ -66,6 +67,8 @@ testpaths = [
 ]
 addopts = "--doctest-modules --doctest-glob=*.rst"
 
+[tool.black]
+line-length = 110
 
 
 [tool.coverage.run]
