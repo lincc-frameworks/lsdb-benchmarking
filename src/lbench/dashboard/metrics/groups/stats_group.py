@@ -7,8 +7,9 @@ from lbench.dashboard.metrics.metric_group import MetricGroup
 class StatsMetric(DurationMetric):
     """Base class for metrics from the 'stats' section with time formatting."""
 
-    def __init__(self, name: str, display_name: str, stats_key: str = None,
-                 error_bar_metric: "StatsMetric" = None):
+    def __init__(
+        self, name: str, display_name: str, stats_key: str = None, error_bar_metric: "StatsMetric" = None
+    ):
         super().__init__(name, display_name)
         self.stats_key = stats_key or name
         self._error_bar_metric = error_bar_metric
@@ -23,10 +24,7 @@ class StatsMetric(DurationMetric):
     def get_error_bar_config(self) -> Optional[Dict[str, Any]]:
         """Return error bar configuration if this metric has one."""
         if self._error_bar_metric:
-            return {
-                "metric": self._error_bar_metric,
-                "type": "symmetric"
-            }
+            return {"metric": self._error_bar_metric, "type": "symmetric"}
         return None
 
 
@@ -44,5 +42,5 @@ q3_metric = StatsMetric("q3", "Q3")
 stats_group = MetricGroup(
     "stats",
     "Performance Statistics",
-    [min_metric, max_metric, mean_metric, median_metric, stddev_metric, iqr_metric, q1_metric, q3_metric]
+    [min_metric, max_metric, mean_metric, median_metric, stddev_metric, iqr_metric, q1_metric, q3_metric],
 )

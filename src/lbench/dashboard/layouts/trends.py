@@ -94,7 +94,9 @@ def _apply_date_filter(df: pd.DataFrame, date_filter: dict) -> pd.DataFrame:
     end_raw = date_filter.get("end_date")
     if not start_raw and not end_raw:
         return df
-    timestamps = df["timestamp"].dt.tz_localize(None) if df["timestamp"].dt.tz is not None else df["timestamp"]
+    timestamps = (
+        df["timestamp"].dt.tz_localize(None) if df["timestamp"].dt.tz is not None else df["timestamp"]
+    )
     mask = pd.Series(True, index=df.index)
     if start_raw:
         mask &= timestamps >= pd.to_datetime(start_raw)
@@ -138,7 +140,9 @@ def toggle_run_selector(chart_type):
     Input("bar-run-selector", "value"),
     Input("run-data-store", "data"),
 )
-def update_trend_plot(selected_benchmarks, selected_metric_names, date_filter, chart_type, selected_runs, run_data):
+def update_trend_plot(
+    selected_benchmarks, selected_metric_names, date_filter, chart_type, selected_runs, run_data
+):
     if not selected_benchmarks or not selected_metric_names:
         return {"layout": {"title": "Select one or more benchmarks and metrics to view trends"}}
 
@@ -195,7 +199,9 @@ def update_trend_plot(selected_benchmarks, selected_metric_names, date_filter, c
         if chart_type == "bar":
             traces = _make_bar_traces(series, scale, selected_runs, metric, multi_metric, yaxis_ref)
         else:
-            traces = _make_line_traces(series, scale, metric, date_filter, multi_metric, yaxis_ref, collection)
+            traces = _make_line_traces(
+                series, scale, metric, date_filter, multi_metric, yaxis_ref, collection
+            )
 
         for trace in traces:
             fig.add_trace(trace)
@@ -247,7 +253,9 @@ def _make_line_traces(series, scale, metric, date_filter, multi_metric, yaxis_re
             if not error_df.empty:
                 merged = df.merge(error_df, on=["run_id", "timestamp"], suffixes=("", "_error"))
                 if "value_error" in merged.columns:
-                    trace_kwargs["error_y"] = dict(type="data", array=merged["value_error"] / scale, visible=True)
+                    trace_kwargs["error_y"] = dict(
+                        type="data", array=merged["value_error"] / scale, visible=True
+                    )
                     trace_kwargs["x"] = merged["timestamp"]
                     trace_kwargs["y"] = merged["value"] / scale
 

@@ -27,9 +27,7 @@ def test_crossmatch(lbench, catalog_local_dir):
 
     # Size (memory) of Gaia margin pixel: 87.9 MiB
     gaia_margin_path = catalog_local_dir / "gaia_dr3" / "gaia_300arcs"
-    gaia_margin_part = npd.read_parquet(
-        pixel_catalog_file(gaia_margin_path, gaia_pixel)
-    )
+    gaia_margin_part = npd.read_parquet(pixel_catalog_file(gaia_margin_path, gaia_pixel))
     gaia_margin = lsdb.read_hats(gaia_margin_path)
 
     algorithm = KdTreeCrossmatch()

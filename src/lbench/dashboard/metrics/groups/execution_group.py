@@ -38,6 +38,7 @@ class PeakMemory(MemoryMetric):
         except (TypeError, ValueError):
             return None
 
+
 execution_group = MetricGroup(
     "execution",
     "Execution Info",
@@ -45,5 +46,5 @@ execution_group = MetricGroup(
         CountMetric("rounds", "Rounds"),
         CountMetric("iterations", "Iterations"),
         PeakMemory(),
-    ]
+    ],
 )

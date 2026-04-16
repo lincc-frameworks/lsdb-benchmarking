@@ -6,6 +6,7 @@ from lbench.dashboard.layouts.sidebar import sidebar_panel, rename_modal
 from lbench.dashboard.layouts.tables import tables_panel
 from lbench.dashboard.layouts.trends import trends_panel
 
+
 def _navbar():
     return dbc.NavbarSimple(
         brand="lbench Dashboard",
@@ -17,8 +18,10 @@ def _navbar():
         fluid=True,
     )
 
+
 def _container():
-    return dbc.Container([
+    return dbc.Container(
+        [
             dcc.Location(id="url", refresh=False),
             dcc.Store(id="date-filter-store", data={}),
             dcc.Store(id="run-data-store", data={}),
@@ -39,12 +42,17 @@ def _container():
         ],
         fluid=True,
         style={
-            "flex": "1", "overflow": "hidden",
-            "paddingLeft": "1em", "paddingRight": "1em",
-            "paddingTop": "0", "paddingBottom": "0",
-            "display": "flex", "flexDirection": "column",
-        }
+            "flex": "1",
+            "overflow": "hidden",
+            "paddingLeft": "1em",
+            "paddingRight": "1em",
+            "paddingTop": "0",
+            "paddingBottom": "0",
+            "display": "flex",
+            "flexDirection": "column",
+        },
     )
+
 
 layout = html.Div(
     [_navbar(), _container()],

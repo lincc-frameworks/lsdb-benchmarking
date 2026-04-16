@@ -43,10 +43,7 @@ class DaskTotalTime(DaskMetric, DurationMetric):
         if dask_stats:
             try:
                 startstops = dask_stats.get("startstops", [])
-                times = [
-                    sum([k["stop"] - k["start"] for k in s])
-                    for s in startstops
-                ]
+                times = [sum([k["stop"] - k["start"] for k in s]) for s in startstops]
                 return sum(times) if times else None
             except (TypeError, ValueError, KeyError):
                 pass
@@ -131,29 +128,27 @@ class DaskGroup(MetricGroup):
             if keys:
                 from lbench.dashboard.utils import format_duration
 
-                times = [
-                    sum([k["stop"] - k["start"] for k in s])
-                    for s in dask_stats.get("startstops", [])
-                ]
+                times = [sum([k["stop"] - k["start"] for k in s]) for s in dask_stats.get("startstops", [])]
 
                 total_time_by_key = {}
                 for k, t in zip(keys, times):
                     total_time_by_key[k] = total_time_by_key.get(k, 0) + t
 
-                sorted_key_times = sorted(
-                    total_time_by_key.items(), key=lambda x: x[1], reverse=True
-                )
+                sorted_key_times = sorted(total_time_by_key.items(), key=lambda x: x[1], reverse=True)
 
                 formatted_times = [format_duration(t) for _, t in sorted_key_times]
 
-                task_table = pd.DataFrame({
-                    "task_key": [k for k, _ in sorted_key_times],
-                    "total time": [f"{v} {u}" for v, u in formatted_times],
-                })
+                task_table = pd.DataFrame(
+                    {
+                        "task_key": [k for k, _ in sorted_key_times],
+                        "total time": [f"{v} {u}" for v, u in formatted_times],
+                    }
+                )
 
                 components.append(html.H5("Dask Task Times", className="card-title mt-3"))
                 components.append(
-                    dbc.Table.from_dataframe(task_table, striped=True, bordered=True, hover=True))
+                    dbc.Table.from_dataframe(task_table, striped=True, bordered=True, hover=True)
+                )
 
         return dbc.CardBody(components) if components else None
 
@@ -170,13 +165,15 @@ class DaskGroup(MetricGroup):
             report_path = dask_stats.get("performance_report")
             if report_path:
                 report_name = Path(report_path).name
-                buttons.append(html.A(
-                    "Open Dask Performance Report",
-                    href=f"/file/{run_name}/{report_name}",
-                    target="_blank",
-                    className="btn btn-outline-primary mt-2",
-                    role="button",
-                ))
+                buttons.append(
+                    html.A(
+                        "Open Dask Performance Report",
+                        href=f"/file/{run_name}/{report_name}",
+                        target="_blank",
+                        className="btn btn-outline-primary mt-2",
+                        role="button",
+                    )
+                )
 
         return buttons
 
@@ -184,5 +181,5 @@ class DaskGroup(MetricGroup):
 dask_group = DaskGroup(
     "dask",
     "Dask Metrics",
-    [DaskTaskCount(), DaskTotalTime(), DaskPeakMemory(), DaskGraphLength(), DaskGraphSize()]
+    [DaskTaskCount(), DaskTotalTime(), DaskPeakMemory(), DaskGraphLength(), DaskGraphSize()],
 )

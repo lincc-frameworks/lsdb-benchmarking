@@ -38,6 +38,7 @@ def run_dask_benchmark(
 
     if client is None:
         from distributed import get_client
+
         client = get_client()
 
     report_path = run_dir / f"dask_performance_report_{uuid.uuid4()}.html"
@@ -105,9 +106,7 @@ def compute_stats(data: list) -> dict:
         q1, q3 = min_val, max_val
     iqr = q3 - q1
 
-    iqr_outliers = sum(
-        1 for x in data if x < q1 - 1.5 * iqr or x > q3 + 1.5 * iqr
-    )
+    iqr_outliers = sum(1 for x in data if x < q1 - 1.5 * iqr or x > q3 + 1.5 * iqr)
     stddev_outliers = sum(1 for x in data if abs(x - mean) > stddev)
 
     return {
@@ -139,9 +138,7 @@ def make_benchmark_entry(
     params: Optional[dict] = None,
 ) -> dict:
     """Build a benchmark entry dict in pytest-benchmark JSON format."""
-    param_str = (
-        "-".join(str(v) for v in params.values()) if params else None
-    )
+    param_str = "-".join(str(v) for v in params.values()) if params else None
     return {
         "group": group,
         "name": name,
@@ -185,18 +182,20 @@ def get_machine_info() -> dict:
 
 def get_commit_info() -> dict:
     try:
-        git_id = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-        ).decode().strip()
-        git_time = subprocess.check_output(
-            ["git", "log", "-1", "--format=%cI"], stderr=subprocess.DEVNULL
-        ).decode().strip()
-        git_branch = subprocess.check_output(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL
-        ).decode().strip()
-        dirty = (
-            subprocess.call(["git", "diff", "--quiet"], stderr=subprocess.DEVNULL) != 0
+        git_id = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
         )
+        git_time = (
+            subprocess.check_output(["git", "log", "-1", "--format=%cI"], stderr=subprocess.DEVNULL)
+            .decode()
+            .strip()
+        )
+        git_branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL)
+            .decode()
+            .strip()
+        )
+        dirty = subprocess.call(["git", "diff", "--quiet"], stderr=subprocess.DEVNULL) != 0
         return {
             "id": git_id,
             "time": git_time,

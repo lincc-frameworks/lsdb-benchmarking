@@ -75,6 +75,7 @@ def reset_session():
 
 # -- display helpers ---------------------------------------------------------
 
+
 def _fmt_time(seconds: float) -> str:
     if seconds >= 1:
         return f"{seconds:.3f} s"
@@ -86,7 +87,7 @@ def _fmt_time(seconds: float) -> str:
 
 
 def _fmt_memory(nbytes: int) -> str:
-    for unit, scale in [("GiB", 2 ** 30), ("MiB", 2 ** 20), ("KiB", 2 ** 10)]:
+    for unit, scale in [("GiB", 2**30), ("MiB", 2**20), ("KiB", 2**10)]:
         if nbytes >= scale:
             return f"{nbytes / scale:.2f} {unit}"
     return f"{nbytes} B"
@@ -94,26 +95,31 @@ def _fmt_memory(nbytes: int) -> str:
 
 # -- magic class -------------------------------------------------------------
 
+
 @magics_class
 class LbenchMagics(Magics):
     """Provides the %%lbench cell magic."""
 
     @cell_magic
     @magic_arguments()
-    @argument("--rounds", "-r", type=int, default=5,
-              help="Number of timed rounds (default: 5)")
-    @argument("--warmup", "-w", action="store_true",
-              help="Run one un-timed warmup round before measuring")
-    @argument("--memory", "-m", action="store_true",
-              help="Track peak memory usage with memray")
-    @argument("--profile", "-p", action="store_true",
-              help="Capture a cProfile .prof file")
-    @argument("--dask", "-d", action="store_true",
-              help="Collect Dask metrics (task stream, memory sampler, performance report)")
-    @argument("--collection", type=str, default=None, metavar="VAR",
-              help="Name of a Dask collection variable; also records graph size and length")
-    @argument("--name", "-n", type=str, default=None,
-              help="Name for this benchmark entry")
+    @argument("--rounds", "-r", type=int, default=5, help="Number of timed rounds (default: 5)")
+    @argument("--warmup", "-w", action="store_true", help="Run one un-timed warmup round before measuring")
+    @argument("--memory", "-m", action="store_true", help="Track peak memory usage with memray")
+    @argument("--profile", "-p", action="store_true", help="Capture a cProfile .prof file")
+    @argument(
+        "--dask",
+        "-d",
+        action="store_true",
+        help="Collect Dask metrics (task stream, memory sampler, performance report)",
+    )
+    @argument(
+        "--collection",
+        type=str,
+        default=None,
+        metavar="VAR",
+        help="Name of a Dask collection variable; also records graph size and length",
+    )
+    @argument("--name", "-n", type=str, default=None, help="Name for this benchmark entry")
     def lbench(self, line: str, cell: str):
         """Benchmark a cell's code and save results to a lbench-compatible JSON log."""
         args = parse_argstring(self.lbench, line)
@@ -149,14 +155,10 @@ class LbenchMagics(Magics):
             if args.collection:
                 collection = ns.get(args.collection)
                 if collection is None:
-                    raise NameError(
-                        f"--collection: variable {args.collection!r} not found in namespace"
-                    )
+                    raise NameError(f"--collection: variable {args.collection!r} not found in namespace")
                 graph = collection.dask
                 dask_info["dask_graph_len"] = len(graph)
-                dask_info["dask_graph_size_bytes"] = sum(
-                    sys.getsizeof(graph[k]) for k in graph
-                )
+                dask_info["dask_graph_size_bytes"] = sum(sys.getsizeof(graph[k]) for k in graph)
 
             extra_info["dask"] = dask_info
 

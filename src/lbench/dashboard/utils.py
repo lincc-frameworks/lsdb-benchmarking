@@ -20,6 +20,7 @@ def format_memory(bytes_value, digits=2):
 
     return f"{num_bytes:.{digits}f}", units[-1]
 
+
 def format_duration(seconds, digits=3):
     """
     Format a duration in seconds using the most appropriate unit.

@@ -4,6 +4,7 @@ import pyarrow.compute as pc
 import pyarrow as pa
 import nested_pandas as npd
 
+
 def test_pyarrow_mean(gaia_collection_path, lbench):
     gaia_root = gaia_collection_path / "gaia"
     parquet_root = f"{gaia_root}/dataset"
@@ -11,12 +12,12 @@ def test_pyarrow_mean(gaia_collection_path, lbench):
 
     def dataset_mean(dataset, field: str, *, use_threads: bool = True):
         total_sum = None  # Arrow Scalar
-        total_count = 0   # Python int
+        total_count = 0  # Python int
 
         for batch in dataset.to_batches(columns=[field], use_threads=use_threads):
             col = batch.column(0)
-            b_sum = pc.sum(col)                          # Scalar (or null if all-null)
-            b_count = pc.count(col, mode="only_valid")     # Int64 Scalar
+            b_sum = pc.sum(col)  # Scalar (or null if all-null)
+            b_count = pc.count(col, mode="only_valid")  # Int64 Scalar
             if not pc.is_null(b_sum).as_py() and b_count.as_py() > 0:
                 total_sum = b_sum if total_sum is None else pc.add(total_sum, b_sum)
                 total_count += b_count.as_py()
@@ -29,15 +30,18 @@ def test_pyarrow_mean(gaia_collection_path, lbench):
 
     lbench(dataset_mean, pyarrow_ds, "phot_g_mean_mag")
 
+
 def test_lsdb_mean(gaia_collection_path, lbench_dask):
-    def catalog_mean(df, target_column=''):
-        result = npd.NestedFrame({
-            "sum": [df[target_column].sum()],
-            "count": [len(df)],
-        })
+    def catalog_mean(df, target_column=""):
+        result = npd.NestedFrame(
+            {
+                "sum": [df[target_column].sum()],
+                "count": [len(df)],
+            }
+        )
         return result
 
-    lsdb_gaia = lsdb.open_catalog(gaia_collection_path, columns=['phot_g_mean_mag'])
+    lsdb_gaia = lsdb.open_catalog(gaia_collection_path, columns=["phot_g_mean_mag"])
     unrealized = lsdb_gaia.map_partitions(
         catalog_mean,
         target_column="phot_g_mean_mag",
@@ -45,4 +49,5 @@ def test_lsdb_mean(gaia_collection_path, lbench_dask):
 
     def compute_mean():
         result = unrealized.compute()
+
     lbench_dask(compute_mean)

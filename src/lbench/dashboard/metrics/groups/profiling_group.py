@@ -32,13 +32,15 @@ class ProfilingGroup(MetricGroup):
         if "cprofile_path" in extra_info:
             profile_path = extra_info["cprofile_path"]
             profile_name = Path(profile_path).name
-            buttons.append(html.A(
-                "Open Flamegraph",
-                href=f"/flamegraph/{run_name}/{profile_name}",
-                target="_blank",
-                className="btn btn-outline-secondary mt-2",
-                role="button",
-            ))
+            buttons.append(
+                html.A(
+                    "Open Flamegraph",
+                    href=f"/flamegraph/{run_name}/{profile_name}",
+                    target="_blank",
+                    className="btn btn-outline-secondary mt-2",
+                    role="button",
+                )
+            )
 
         return buttons
 

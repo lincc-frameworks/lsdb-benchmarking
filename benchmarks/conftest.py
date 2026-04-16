@@ -6,6 +6,7 @@ import pyarrow.dataset
 import pyarrow as pa
 import lsdb
 
+
 @fixture
 def catalog_local_dir() -> UPath:
     root = os.environ.get("CATALOG_LOCAL_DIR", "/epyc/data3/hats/catalogs")
@@ -15,6 +16,7 @@ def catalog_local_dir() -> UPath:
 @fixture
 def gaia_local_collection_path(catalog_local_dir: UPath) -> UPath:
     return catalog_local_dir / "gaia_dr3"
+
 
 @fixture
 def gaia_local_catalog_path(gaia_local_collection_path) -> UPath:
@@ -30,13 +32,16 @@ def gaia_local_metadata_path(gaia_local_catalog_path) -> UPath:
 def gaia_s3_collection_path() -> UPath:
     return UPath("s3://stpubdata/gaia/gaia_dr3/public/hats")
 
+
 @fixture(scope="session")
 def gaia_s3_catalog_path(gaia_s3_collection_path) -> UPath:
     return gaia_s3_collection_path / "gaia"
 
+
 @fixture(scope="session")
 def gaia_s3_metadata_path(gaia_s3_catalog_path) -> UPath:
     return gaia_s3_catalog_path / "dataset" / "_metadata"
+
 
 @fixture(scope="session")
 def gaia_s3_dataset(gaia_s3_metadata_path) -> pyarrow.dataset.Dataset:
@@ -45,6 +50,7 @@ def gaia_s3_dataset(gaia_s3_metadata_path) -> pyarrow.dataset.Dataset:
         partitioning="hive",
         filesystem=pa.fs.S3FileSystem(),
     )
+
 
 @fixture
 def gaia_local_dataset(gaia_local_metadata_path) -> pyarrow.dataset.Dataset:
@@ -86,4 +92,5 @@ def helpers(request):
             else:
                 raise ValueError(f"Unsupported IO method: {io_method}")
             return lsdb.open_catalog(path.as_uri(), **kwargs)
+
     return Helpers()

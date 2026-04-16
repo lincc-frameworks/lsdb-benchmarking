@@ -39,7 +39,7 @@ def pytest_configure(config: pytest.Config):
 
     # configure pytest-benchmark
     config.option.benchmark_only = True
-    config.option.benchmark_json = (run_dir / "pytest-benchmark.json").open("wb") # kinda hacky
+    config.option.benchmark_json = (run_dir / "pytest-benchmark.json").open("wb")  # kinda hacky
 
     terminal = config.pluginmanager.get_plugin("terminalreporter")
     if terminal:
