@@ -18,7 +18,7 @@ app = dash.Dash(
     __name__,
     external_stylesheets=[
         dbc.themes.FLATLY,
-        "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+        "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css",
     ],
 )
 
@@ -56,11 +56,7 @@ def serve_flamegraph(run_name, filename):
     data = read(str(prof_file))
     html_content = render(data, prof_file.name)
 
-    html_content = re.sub(
-        r'src="static/(.*?)"', r'src="/tuna_web/static/\1"', html_content
-    )
-    html_content = re.sub(
-        r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content
-    )
+    html_content = re.sub(r'src="static/(.*?)"', r'src="/tuna_web/static/\1"', html_content)
+    html_content = re.sub(r'href="static/(.*?)"', r'href="/tuna_web/static/\1"', html_content)
 
     return Response(html_content, mimetype="text/html")

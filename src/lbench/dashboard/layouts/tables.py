@@ -15,6 +15,7 @@ def tables_panel():
 
 def _fmt_run_datetime(dt_str: str) -> str:
     from datetime import datetime
+
     try:
         dt = datetime.fromisoformat(dt_str)
         local_dt = dt.astimezone().replace(tzinfo=None)
@@ -30,7 +31,9 @@ def benchmark_to_table(bm, run_name, run_datetime=None):
             html.Span(
                 run_datetime,
                 style={"fontSize": "0.8em", "color": "#888", "marginLeft": "1em", "fontWeight": "normal"},
-            ) if run_datetime else None,
+            )
+            if run_datetime
+            else None,
         ],
         style={"display": "flex", "justifyContent": "space-between", "alignItems": "baseline"},
     )

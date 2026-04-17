@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT_DIR_ENV_VAR = "LBENCH_ROOT"
 
+
 def get_lbench_root_dir() -> Path:
     """
     Resolve the lbench root directory.

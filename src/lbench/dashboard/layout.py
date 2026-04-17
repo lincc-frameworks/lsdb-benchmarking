@@ -1,10 +1,11 @@
 from dash import html, dcc, Input, Output, callback
 import dash_bootstrap_components as dbc
 
-from lbench.dashboard.context import RUN_DATA
+from lbench.dashboard.context import load_all_runs, ROOT_DIR
 from lbench.dashboard.layouts.sidebar import sidebar_panel, rename_modal
 from lbench.dashboard.layouts.tables import tables_panel
 from lbench.dashboard.layouts.trends import trends_panel
+
 
 def _navbar():
     return dbc.NavbarSimple(
@@ -17,10 +18,13 @@ def _navbar():
         fluid=True,
     )
 
+
 def _container():
-    return dbc.Container([
+    return dbc.Container(
+        [
+            dcc.Location(id="url", refresh=False),
             dcc.Store(id="date-filter-store", data={}),
-            dcc.Store(id="run-data-store", data=RUN_DATA),
+            dcc.Store(id="run-data-store", data={}),
             dcc.Store(id="rename-old-name", data=""),
             dcc.Store(id="right-panel-view", data="tables"),
             rename_modal(),
@@ -38,17 +42,32 @@ def _container():
         ],
         fluid=True,
         style={
-            "flex": "1", "overflow": "hidden",
-            "paddingLeft": "1em", "paddingRight": "1em",
-            "paddingTop": "0", "paddingBottom": "0",
-            "display": "flex", "flexDirection": "column",
-        }
+            "flex": "1",
+            "overflow": "hidden",
+            "paddingLeft": "1em",
+            "paddingRight": "1em",
+            "paddingTop": "0",
+            "paddingBottom": "0",
+            "display": "flex",
+            "flexDirection": "column",
+        },
     )
+
 
 layout = html.Div(
     [_navbar(), _container()],
     style={"height": "100vh", "overflow": "hidden", "display": "flex", "flexDirection": "column"},
 )
+
+
+@callback(
+    Output("run-data-store", "data", allow_duplicate=True),
+    Input("url", "pathname"),
+    prevent_initial_call="initial_duplicate",
+)
+def reload_on_page_load(_pathname):
+    return load_all_runs(ROOT_DIR)
+
 
 @callback(
     Output("tables-view", "style"),

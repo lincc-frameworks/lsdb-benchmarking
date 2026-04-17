@@ -3,7 +3,7 @@ import pandas as pd
 from dash import html, Input, Output, State, dcc, callback, no_update
 import dash_bootstrap_components as dbc
 
-from lbench.dashboard.context import RUN_DATA, rename_run
+from lbench.dashboard.context import rename_run
 from lbench.dashboard.layouts.tables import benchmarks_to_tables
 
 
@@ -106,21 +106,32 @@ def sidebar_panel():
                     ),
                     html.Div(
                         [
-                            dbc.Button("Apply", id="apply-filter-btn", color="primary", size="sm",
-                                       className="me-1"),
+                            dbc.Button(
+                                "Apply", id="apply-filter-btn", color="primary", size="sm", className="me-1"
+                            ),
                             dbc.Button("Clear", id="clear-filter-btn", color="secondary", size="sm"),
-                            dbc.Button("Plot series", id="plot-range-btn", color="success", size="sm",
-                                       style={"marginLeft": "auto"}),
+                            dbc.Button(
+                                "Plot series",
+                                id="plot-range-btn",
+                                color="success",
+                                size="sm",
+                                style={"marginLeft": "auto"},
+                            ),
                         ],
                         style={"marginTop": "10px", "display": "flex"},
                     ),
                 ],
-                style={"borderTop": "1px solid #ccc", "padding": "1em 0", "flexShrink": "0",
-                       "position": "relative", "zIndex": 10},
+                style={
+                    "borderTop": "1px solid #ccc",
+                    "padding": "1em 0",
+                    "flexShrink": "0",
+                    "position": "relative",
+                    "zIndex": 10,
+                },
             ),
             html.Div(
                 id="sidebar-container",
-                children=create_sidebar(RUN_DATA),
+                children=create_sidebar({}),
                 style={"overflowY": "auto", "flex": "1", "minHeight": "0"},
             ),
         ],
@@ -136,6 +147,7 @@ def sidebar_panel():
 
 
 # --- Date filter ---
+
 
 @callback(
     Output("date-filter-store", "data"),
@@ -168,6 +180,7 @@ def sync_date_picker(date_filter, _run_data):
 
 # --- Benchmark tables + sidebar ---
 
+
 @callback(
     Output("benchmark-tables-container", "children"),
     Output("sidebar-container", "children"),
@@ -179,11 +192,17 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data, date_filter):
     triggered = dash.ctx.triggered_id
 
     def placeholder(msg):
-        return html.Div(msg, style={
-            "height": "100%", "display": "flex",
-            "alignItems": "center", "justifyContent": "center",
-            "color": "#888", "fontSize": "1.1rem",
-        })
+        return html.Div(
+            msg,
+            style={
+                "height": "100%",
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "color": "#888",
+                "fontSize": "1.1rem",
+            },
+        )
 
     if not run_data or not isinstance(run_data, dict):
         return placeholder("No run data found"), create_sidebar({})
@@ -197,13 +216,15 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data, date_filter):
         idx = triggered.get("index")
         if idx is not None:
             run_name = list(filtered_run_data.keys())[idx]
-            return benchmarks_to_tables(run_name, run_data[run_name]), create_sidebar(filtered_run_data,
-                                                                                      active_run=run_name)
+            return benchmarks_to_tables(run_name, run_data[run_name]), create_sidebar(
+                filtered_run_data, active_run=run_name
+            )
 
     return placeholder("Select a run from the sidebar or plot series"), create_sidebar(filtered_run_data)
 
 
 # --- Panel switching ---
+
 
 @callback(
     Output("right-panel-view", "data"),
@@ -224,6 +245,7 @@ def show_tables(_):
 
 
 # --- Rename ---
+
 
 @callback(
     Output("rename-modal", "is_open"),
@@ -256,7 +278,7 @@ def handle_rename(edit_clicks, cancel_clicks, confirm_clicks, old_name, new_name
         return False, "", "", "", no_update
 
     if triggered_id == "rename-confirm-btn" and confirm_clicks:
-        success, message, new_run_data, _ = rename_run(old_name, new_name)
+        success, message, new_run_data = rename_run(old_name, new_name)
         if success:
             return False, "", "", "", new_run_data
         return no_update, no_update, no_update, message, no_update

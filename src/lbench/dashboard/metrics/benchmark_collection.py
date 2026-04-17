@@ -64,12 +64,7 @@ class BenchmarkCollection:
                 if not bm_name:
                     continue
 
-                run = BenchmarkRun(
-                    name=bm_name,
-                    run_id=run_id,
-                    timestamp=timestamp,
-                    raw_data=bm_data
-                )
+                run = BenchmarkRun(name=bm_name, run_id=run_id, timestamp=timestamp, raw_data=bm_data)
 
                 self.runs.append(run)
 
@@ -110,11 +105,13 @@ class BenchmarkCollection:
         for run in runs:
             value = run.get_metric_value(metric)
             if value is not None:  # Only include runs where metric is available
-                data.append({
-                    "run_id": run.run_id,
-                    "timestamp": run.timestamp,
-                    "value": value,
-                })
+                data.append(
+                    {
+                        "run_id": run.run_id,
+                        "timestamp": run.timestamp,
+                        "value": value,
+                    }
+                )
 
         return pd.DataFrame(data)
 

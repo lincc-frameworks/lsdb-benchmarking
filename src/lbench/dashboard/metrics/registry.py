@@ -3,6 +3,7 @@ from typing import Optional, List, Dict
 from lbench.dashboard.metrics.metric import Metric
 from lbench.dashboard.metrics.metric_group import MetricGroup
 
+
 class MetricRegistry:
     """Registry for managing available metrics and groups.
 
@@ -77,4 +78,3 @@ class MetricRegistry:
             List of available groups
         """
         return [g for g in self._groups.values() if g.is_available(benchmark_data)]
-
