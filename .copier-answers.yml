@@ -15,7 +15,7 @@ mypy_type_checking: none
 package_name: lbench
 project_description: Benchmarking tools for LSDB
 project_license: MIT
-project_name: lbench
+project_name: lf-bench
 project_organization: lincc-frameworks
 python_versions:
 - '3.10'
