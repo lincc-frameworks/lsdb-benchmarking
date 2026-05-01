@@ -39,6 +39,10 @@ dev = [
     "pre-commit", # Used to run checks before finalizing a git commit
     "pytest-cov", # Used to report total code coverage
 ]
+protocols = [
+    "fsspec-xrootd", # XRootD filesystem for protocol benchmarks
+    "webdav4[fsspec]", # WebDAV filesystem for protocol benchmarks
+]
 
 [build-system]
 requires = [
@@ -66,10 +70,11 @@ testpaths = [
     "docs",
 ]
 addopts = "--doctest-modules --doctest-glob=*.rst"
+log_cli = true
+log_cli_level = "INFO"
 
 [tool.black]
 line-length = 110
-
 
 [tool.coverage.run]
 omit = ["src/lbench/_version.py"]
