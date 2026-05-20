@@ -39,6 +39,11 @@ dev = [
     "pre-commit", # Used to run checks before finalizing a git commit
     "pytest-cov", # Used to report total code coverage
 ]
+protocols = [
+    "xrootd", # XRootD filesystem for protocol benchmarks
+    "fsspec-xrootd", # XRootD integration with fsspec
+    "webdav4[fsspec]", # WebDAV filesystem for protocol benchmarks
+]
 
 [build-system]
 requires = [
