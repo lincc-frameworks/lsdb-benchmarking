@@ -17,8 +17,8 @@ Protocols
            Requires no credentials.
 """
 
-import pytest
 import lsdb
+import pytest
 
 GAIA_URLS = {
     "http": "https://data.lsdb.io/hats/gaia_dr3",
@@ -96,12 +96,8 @@ def test_crossmatch_usdf_ra_dec(lbench_dask, external_protocol, internal_protoco
 
     def crossmatch():
         cone = lsdb.ConeSearch(ra=0.0, dec=0.0, radius_arcsec=3600)
-        gaia_int = lsdb.open_catalog(
-            GAIA_URLS[internal_protocol], columns=["ra", "dec"], search_filter=cone
-        )
-        gaia_ext = lsdb.open_catalog(
-            GAIA_URLS[external_protocol], columns=["ra", "dec"], search_filter=cone
-        )
+        gaia_int = lsdb.open_catalog(GAIA_URLS[internal_protocol], columns=["ra", "dec"], search_filter=cone)
+        gaia_ext = lsdb.open_catalog(GAIA_URLS[external_protocol], columns=["ra", "dec"], search_filter=cone)
         xmatch = gaia_int.crossmatch(gaia_ext, radius_arcsec=1, suffixes=("_1", "_2"))
         xmatch.compute()
 
