@@ -34,7 +34,9 @@ def format_duration(seconds, digits=3):
     except (TypeError, ValueError):
         return str(seconds), ""
 
-    if seconds >= 1:
+    if seconds >= 60:
+        return f"{seconds / 60:.{digits}f}", "min"
+    elif seconds >= 1:
         return f"{seconds:.{digits}f}", "s"
     elif seconds >= 1e-3:
         return f"{seconds * 1e3:.{digits}f}", "ms"
