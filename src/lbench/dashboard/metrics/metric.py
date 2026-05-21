@@ -107,7 +107,7 @@ class DurationMetric(Metric, ABC):
 
     def get_plot_scale_and_unit(self, values) -> tuple:
         representative = float(values.median())
-        for threshold, unit in [(1e-3, "ms"), (1e-6, "µs"), (1e-9, "ns")]:
+        for threshold, unit in [(60, "min"), (1, "s"), (1e-3, "ms"), (1e-6, "µs"), (1e-9, "ns")]:
             if representative >= threshold:
                 return float(threshold), unit
         return 1.0, "s"
