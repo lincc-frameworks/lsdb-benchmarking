@@ -18,7 +18,7 @@ dynamic = ["version"]
 requires-python = ">=3.10"
 dependencies = [
     "pytest",
-    "pytest-benchmark",
+    "pytest-benchmark>=5",
     "typer",
     "dask[complete]",
     "dash",
