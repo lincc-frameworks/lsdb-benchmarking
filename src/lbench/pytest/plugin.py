@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -18,6 +19,7 @@ def pytest_addoption(parser):
         "--lbench-root",
         action="store",
         default=None,
+        type=Path,
         help="Root directory for lbench runs",
     )
 
