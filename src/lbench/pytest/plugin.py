@@ -31,6 +31,8 @@ def pytest_configure(config: pytest.Config):
     root = config.getoption("--lbench-root")
     if root is None:
         root = get_lbench_root_dir()
+    else:  # Support paths like "~/results"
+        root = root.expanduser()
 
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_dir = root / run_id
