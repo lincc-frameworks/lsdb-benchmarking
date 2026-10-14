@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -18,6 +19,7 @@ def pytest_addoption(parser):
         "--lbench-root",
         action="store",
         default=None,
+        type=Path,
         help="Root directory for lbench runs",
     )
 
@@ -29,6 +31,8 @@ def pytest_configure(config: pytest.Config):
     root = config.getoption("--lbench-root")
     if root is None:
         root = get_lbench_root_dir()
+    else:  # Support paths like "~/results"
+        root = root.expanduser()
 
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_dir = root / run_id

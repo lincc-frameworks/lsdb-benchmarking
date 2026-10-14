@@ -9,7 +9,7 @@ def get_lbench_root_dir() -> Path:
     Resolve the lbench root directory.
 
     Priority:
-    1. $LBENCH_ROOT_DIR if set
+    1. $LBENCH_ROOT if set
     2. ./lbench_results relative to CWD
 
     The resolved path is created if missing and written back
