@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 
 
-def test_local_catalog_partition_read(gaia_collection_path, lbench_dask):
-    gaia = lsdb.read_hats(gaia_collection_path)
+def test_local_catalog_partition_read(gaia_local_collection_path, lbench_dask):
+    gaia = lsdb.read_hats(gaia_local_collection_path)
     cat = gaia.partitions[0]
 
     def load_partition():
@@ -15,8 +15,8 @@ def test_local_catalog_partition_read(gaia_collection_path, lbench_dask):
     lbench_dask(load_partition)
 
 
-def test_local_catalog_npd_read(gaia_collection_path, lbench):
-    gaia = lsdb.read_hats(gaia_collection_path)
+def test_local_catalog_npd_read(gaia_local_collection_path, lbench):
+    gaia = lsdb.read_hats(gaia_local_collection_path)
     partition_0_pixel = gaia.partitions[0].get_healpix_pixels()[0]
     partition_0_path = hats.io.paths.pixel_catalog_file(gaia.hc_structure.catalog_base_dir, partition_0_pixel)
 
@@ -26,8 +26,8 @@ def test_local_catalog_npd_read(gaia_collection_path, lbench):
     lbench(load_partition_npd)
 
 
-def test_local_catalog_pd_read(gaia_collection_path, lbench):
-    gaia = lsdb.read_hats(gaia_collection_path)
+def test_local_catalog_pd_read(gaia_local_collection_path, lbench):
+    gaia = lsdb.read_hats(gaia_local_collection_path)
     partition_0_pixel = gaia.partitions[0].get_healpix_pixels()[0]
     partition_0_path = hats.io.paths.pixel_catalog_file(gaia.hc_structure.catalog_base_dir, partition_0_pixel)
 
@@ -38,8 +38,8 @@ def test_local_catalog_pd_read(gaia_collection_path, lbench):
 
 
 @pytest.mark.benchmark(min_rounds=1)
-def test_local_catalog_multi_partition_read(gaia_collection_path, lbench_dask):
-    gaia = lsdb.read_hats(gaia_collection_path)
+def test_local_catalog_multi_partition_read(gaia_local_collection_path, lbench_dask):
+    gaia = lsdb.read_hats(gaia_local_collection_path)
     n_partitions = 10
     cat = gaia.partitions[:n_partitions]
 
@@ -50,8 +50,8 @@ def test_local_catalog_multi_partition_read(gaia_collection_path, lbench_dask):
 
 
 @pytest.mark.benchmark(min_rounds=1)
-def test_local_catalog_multi_partition_npd_read(gaia_collection_path, lbench):
-    gaia = lsdb.read_hats(gaia_collection_path)
+def test_local_catalog_multi_partition_npd_read(gaia_local_collection_path, lbench):
+    gaia = lsdb.read_hats(gaia_local_collection_path)
     n_partitions = 10
     partition_paths = []
     for i in range(n_partitions):
