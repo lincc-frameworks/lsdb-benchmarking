@@ -5,8 +5,8 @@ import pyarrow as pa
 import nested_pandas as npd
 
 
-def test_pyarrow_mean(gaia_collection_path, lbench):
-    gaia_root = gaia_collection_path / "gaia"
+def test_pyarrow_mean(gaia_local_collection_path, lbench):
+    gaia_root = gaia_local_collection_path / "gaia"
     parquet_root = f"{gaia_root}/dataset"
     pyarrow_ds = ds.parquet_dataset(f"{parquet_root}/_metadata")
 
@@ -31,7 +31,7 @@ def test_pyarrow_mean(gaia_collection_path, lbench):
     lbench(dataset_mean, pyarrow_ds, "phot_g_mean_mag")
 
 
-def test_lsdb_mean(gaia_collection_path, lbench_dask):
+def test_lsdb_mean(gaia_local_collection_path, lbench_dask):
     def catalog_mean(df, target_column=""):
         result = npd.NestedFrame(
             {
@@ -41,7 +41,7 @@ def test_lsdb_mean(gaia_collection_path, lbench_dask):
         )
         return result
 
-    lsdb_gaia = lsdb.open_catalog(gaia_collection_path, columns=["phot_g_mean_mag"])
+    lsdb_gaia = lsdb.open_catalog(gaia_local_collection_path, columns=["phot_g_mean_mag"])
     unrealized = lsdb_gaia.map_partitions(
         catalog_mean,
         target_column="phot_g_mean_mag",

@@ -3,10 +3,10 @@ import lsdb
 import nested_pandas as npd
 
 from hats.pixel_math import HealpixPixel
-from lsdb.dask.crossmatch_catalog_data import perform_crossmatch
+from lsdb.operations.functions.crossmatch_catalog_data import perform_crossmatch
+from lsdb.operations.functions.merge_catalog_functions import generate_meta_df_for_joined_tables
 from hats.io import pixel_catalog_file
 from lsdb.core.crossmatch.kdtree_match import KdTreeCrossmatch
-from lsdb.dask.merge_catalog_functions import generate_meta_df_for_joined_tables
 
 
 @pytest.mark.lbench_memory
