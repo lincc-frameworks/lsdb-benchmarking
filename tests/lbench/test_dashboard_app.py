@@ -1,11 +1,10 @@
 import cProfile
 import json
+import time
 
 import pytest
-from werkzeug.exceptions import Forbidden
 
 from lbench.dashboard import app as dashboard_app
-from lbench.dashboard.layouts import sidebar
 
 REPORT = "dask_performance_report_0f4c1a5e-8f0b-4d55-9a8e-3c2b7e6d1f90.html"
 
@@ -13,7 +12,7 @@ REPORT = "dask_performance_report_0f4c1a5e-8f0b-4d55-9a8e-3c2b7e6d1f90.html"
 def _write_prof(path):
     profiler = cProfile.Profile()
     profiler.enable()
-    sum(range(1000))
+    time.sleep(0.001)
     profiler.disable()
     profiler.dump_stats(path)
 
