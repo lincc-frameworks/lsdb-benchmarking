@@ -21,7 +21,7 @@ dependencies = [
     "pytest-benchmark>=5.3.0",
     "typer",
     "dask[complete]",
-    "dash",
+    "dash>=3.3.0",
     "dash-bootstrap-components",
     "pandas",
     "tuna",

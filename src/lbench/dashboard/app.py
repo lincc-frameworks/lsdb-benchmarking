@@ -18,6 +18,7 @@ TUNA_WEB_DIR = Path(tuna_file).parent / "web"
 
 app = dash.Dash(
     __name__,
+    health_endpoint="health",
     external_stylesheets=[
         dbc.themes.FLATLY,
         "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css",
