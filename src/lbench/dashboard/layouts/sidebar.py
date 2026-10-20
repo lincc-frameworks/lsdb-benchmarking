@@ -2,9 +2,12 @@ import dash
 import pandas as pd
 from dash import html, Input, Output, State, dcc, callback, no_update
 import dash_bootstrap_components as dbc
+from flask import abort
 
 from lbench.dashboard.context import rename_run
 from lbench.dashboard.layouts.tables import benchmarks_to_tables
+
+RENAME_ENABLED = False
 
 
 def filter_runs_by_date(run_data, filter_data):
@@ -55,6 +58,7 @@ def create_sidebar(run_data, active_run=None):
                                 id={"type": "run-edit-btn", "index": i},
                                 className="btn btn-link btn-sm",
                                 style={"padding": "4px 8px", "color": "#666"},
+                                hidden=not RENAME_ENABLED,
                             ),
                             width=2,
                             style={"padding": "0", "textAlign": "right"},
@@ -278,6 +282,8 @@ def handle_rename(edit_clicks, cancel_clicks, confirm_clicks, old_name, new_name
         return False, "", "", "", no_update
 
     if triggered_id == "rename-confirm-btn" and confirm_clicks:
+        if not RENAME_ENABLED:
+            abort(403)
         success, message, new_run_data = rename_run(old_name, new_name)
         if success:
             return False, "", "", "", new_run_data

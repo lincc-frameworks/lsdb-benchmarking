@@ -119,7 +119,7 @@ my_expensive_function()
 Available options:
 
 | Option             | Short | Description                                                    |
-|--------------------|-------|----------------------------------------------------------------|
+| ------------------ | ----- | -------------------------------------------------------------- |
 | `--rounds N`       | `-r`  | Number of timed rounds (default: 5)                            |
 | `--warmup`         | `-w`  | Run one un-timed warmup round first                            |
 | `--memory`         | `-m`  | Track peak memory with memray                                  |
@@ -162,13 +162,21 @@ run_dashboard(port=8050)
 
 Calling `run_dashboard()` again will restart the server on the new settings.
 
+`lbench dash` and `run_dashboard()` use the Dash development server. To host the dashboard, point a WSGI
+server at `lbench.dashboard.app:server` instead:
+
+```bash
+pip install gunicorn
+LBENCH_ROOT=/path/to/results gunicorn --bind 0.0.0.0:8050 lbench.dashboard.app:server
+```
+
 ### Dashboard Features
 
 **Run browser (sidebar)**
 
 - Lists all runs in chronological order
 - Filter runs by date range with the date picker
-- Rename runs with the pencil icon
+- Rename runs with the pencil icon (temporarily disabled for security)
 
 **Benchmark tables**
 
