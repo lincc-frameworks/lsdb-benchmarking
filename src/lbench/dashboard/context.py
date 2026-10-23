@@ -1,3 +1,4 @@
+import functools
 import json
 import os
 import shutil
@@ -40,8 +41,35 @@ def load_all_runs(root_dir):
     return dict(sorted(runs.items(), key=lambda kv: kv[1].get("datetime", ""), reverse=True))
 
 
+# Runs are kept on the server between callbacks. The browser only gets their names, so callbacks don't
+# have to send every run's data back to the server with each request.
+@functools.lru_cache(maxsize=1)
+def _load_runs(root_dir, _files):
+    return load_all_runs(root_dir)
+
+
+def get_runs():
+    """All runs in ROOT_DIR, newest first, reread from disk only when the results files change.
+
+    Every request gets the same dicts, so treat them as read-only.
+    """
+    files = []
+    for json_file in sorted(ROOT_DIR.glob("*/pytest-benchmark.json")):
+        stat = json_file.stat()
+        files.append((json_file, stat.st_mtime_ns, stat.st_size))
+    return _load_runs(ROOT_DIR, tuple(files))
+
+
+def get_run_data(run_ids):
+    """Data for the given runs, in the given order, skipping runs that no longer exist."""
+    if not run_ids:
+        return {}
+    runs = get_runs()
+    return {run_id: runs[run_id] for run_id in run_ids if run_id in runs}
+
+
 def get_collection(run_data: dict) -> BenchmarkCollection:
-    """Build a BenchmarkCollection from raw run data (e.g. from run-data-store)."""
+    """Build a BenchmarkCollection from raw run data (e.g. from get_run_data)."""
     return BenchmarkCollection(run_data or {}, registry)
 
 

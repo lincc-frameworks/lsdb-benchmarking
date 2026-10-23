@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from dash import dcc, html, Input, Output, callback
 import dash_bootstrap_components as dbc
 
-from lbench.dashboard.context import registry, get_collection
+from lbench.dashboard.context import registry, get_collection, get_run_data
 
 
 def trends_panel():
@@ -110,13 +110,14 @@ def _apply_date_filter(df: pd.DataFrame, date_filter: dict) -> pd.DataFrame:
     Output("metric-selector", "options"),
     Output("bar-run-selector", "options"),
     Output("bar-run-selector", "value"),
-    Input("run-data-store", "data"),
+    Input("run-ids-store", "data"),
 )
-def refresh_trend_options(run_data):
+def refresh_trend_options(run_ids):
+    run_data = get_run_data(run_ids)
     collection = get_collection(run_data)
     benchmark_options = [{"label": b, "value": b} for b in collection.get_benchmark_names()]
     metric_options = [{"label": m.display_name, "value": m.name} for m in collection.get_common_metrics()]
-    run_ids = list((run_data or {}).keys())
+    run_ids = list(run_data)
     run_options = [{"label": r, "value": r} for r in run_ids]
     return benchmark_options, metric_options, run_options, run_ids
 
@@ -138,10 +139,10 @@ def toggle_run_selector(chart_type):
     Input("date-filter-store", "data"),
     Input("chart-type-selector", "value"),
     Input("bar-run-selector", "value"),
-    Input("run-data-store", "data"),
+    Input("run-ids-store", "data"),
 )
 def update_trend_plot(
-    selected_benchmarks, selected_metric_names, date_filter, chart_type, selected_runs, run_data
+    selected_benchmarks, selected_metric_names, date_filter, chart_type, selected_runs, run_ids
 ):
     if not selected_benchmarks or not selected_metric_names:
         return {"layout": {"title": "Select one or more benchmarks and metrics to view trends"}}
@@ -149,7 +150,7 @@ def update_trend_plot(
     if isinstance(selected_metric_names, str):
         selected_metric_names = [selected_metric_names]
 
-    collection = get_collection(run_data)
+    collection = get_collection(get_run_data(run_ids))
 
     # Build (metric, series, scale, unit) tuples, skipping metrics with no data
     metrics_data = []

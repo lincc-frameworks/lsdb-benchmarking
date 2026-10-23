@@ -1,7 +1,7 @@
 from dash import html, dcc, Input, Output, callback
 import dash_bootstrap_components as dbc
 
-from lbench.dashboard.context import load_all_runs, ROOT_DIR
+from lbench.dashboard.context import get_runs
 from lbench.dashboard.layouts.sidebar import sidebar_panel, rename_modal
 from lbench.dashboard.layouts.tables import tables_panel
 from lbench.dashboard.layouts.trends import trends_panel
@@ -24,7 +24,7 @@ def _container():
         [
             dcc.Location(id="url", refresh=False),
             dcc.Store(id="date-filter-store", data={}),
-            dcc.Store(id="run-data-store", data={}),
+            dcc.Store(id="run-ids-store", data=[]),
             dcc.Store(id="rename-old-name", data=""),
             dcc.Store(id="right-panel-view", data="tables"),
             rename_modal(),
@@ -61,12 +61,12 @@ layout = html.Div(
 
 
 @callback(
-    Output("run-data-store", "data", allow_duplicate=True),
+    Output("run-ids-store", "data", allow_duplicate=True),
     Input("url", "pathname"),
     prevent_initial_call="initial_duplicate",
 )
 def reload_on_page_load(_pathname):
-    return load_all_runs(ROOT_DIR)
+    return list(get_runs())
 
 
 @callback(
