@@ -5,8 +5,11 @@ import time
 import pytest
 
 from lbench.dashboard import app as dashboard_app
+from lbench.dashboard import context
+from lbench.dashboard.layout import reload_on_page_load
 
 REPORT = "dask_performance_report_0f4c1a5e-8f0b-4d55-9a8e-3c2b7e6d1f90.html"
+RUN = {"datetime": "2026-10-22", "benchmarks": []}
 
 
 def _write_prof(path):
@@ -23,7 +26,7 @@ def root_dir(tmp_path, monkeypatch):
     root = tmp_path / "results"
     run_dir = root / "run1"
     run_dir.mkdir(parents=True)
-    (run_dir / "pytest-benchmark.json").write_text(json.dumps({"benchmarks": []}))
+    (run_dir / "pytest-benchmark.json").write_text(json.dumps(RUN))
     _write_prof(run_dir / "cprofile_test.prof")
     (run_dir / REPORT).write_text("<html>report</html>")
 
@@ -33,6 +36,7 @@ def root_dir(tmp_path, monkeypatch):
     _write_prof(outside / "secret.prof")
 
     monkeypatch.setattr(dashboard_app, "ROOT_DIR", root)
+    monkeypatch.setattr(context, "ROOT_DIR", root)
     return root
 
 
@@ -45,7 +49,26 @@ def test_server_has_layout(client):
     """The WSGI server is usable as-is, without calling run_dashboard()"""
     response = client.get("/_dash-layout")
     assert response.status_code == 200
-    assert "run-data-store" in response.get_data(as_text=True)
+    assert "run-ids-store" in response.get_data(as_text=True)
+
+
+def test_page_load_sends_only_run_names(root_dir, monkeypatch):
+    """The results are reread from disk only when they change"""
+    loads = []
+    load_all_runs = context.load_all_runs
+    monkeypatch.setattr(context, "load_all_runs", lambda path: loads.append(path) or load_all_runs(path))
+
+    # Only names go to the browser, so callback requests don't grow with the results
+    assert reload_on_page_load("/") == ["run1"]
+    # Nothing changed, so the cached runs are reused
+    assert reload_on_page_load("/") == ["run1"]
+    assert len(loads) == 1
+
+    # A new run, like the ones the nightly copy adds, invalidates the cache
+    (root_dir / "run2").mkdir()
+    (root_dir / "run2" / "pytest-benchmark.json").write_text(json.dumps({**RUN, "datetime": "2026-10-23"}))
+    assert reload_on_page_load("/") == ["run2", "run1"]
+    assert len(loads) == 2
 
 
 def test_serve_file(client):
