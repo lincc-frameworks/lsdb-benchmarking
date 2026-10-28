@@ -28,12 +28,14 @@ def benchmark_to_table(bm, run_name, run_datetime=None):
     header_content = html.Div(
         [
             html.Span(bm["fullname"]),
-            html.Span(
-                run_datetime,
-                style={"fontSize": "0.8em", "color": "#888", "marginLeft": "1em", "fontWeight": "normal"},
-            )
-            if run_datetime
-            else None,
+            (
+                html.Span(
+                    run_datetime,
+                    style={"fontSize": "0.8em", "color": "#888", "marginLeft": "1em", "fontWeight": "normal"},
+                )
+                if run_datetime
+                else None
+            ),
         ],
         style={"display": "flex", "justifyContent": "space-between", "alignItems": "baseline"},
     )

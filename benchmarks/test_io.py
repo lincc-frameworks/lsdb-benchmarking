@@ -2,7 +2,6 @@ import pytest
 import pyarrow.dataset
 import pyarrow.compute as pc
 
-
 COLUMN_CONFIGS = [
     ["source_id", "ra", "dec"],
     [

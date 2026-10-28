@@ -1,7 +1,6 @@
 import typer
 from lbench.dashboard.app import run_dashboard
 
-
 app = typer.Typer(help="lbench CLI — run benchmarks and dashboards")
 
 
