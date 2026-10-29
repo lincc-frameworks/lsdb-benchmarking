@@ -4,7 +4,7 @@ from dash import html, Input, Output, State, dcc, callback, no_update
 import dash_bootstrap_components as dbc
 from flask import abort
 
-from lbench.dashboard.context import rename_run
+from lbench.dashboard.context import get_run_data, rename_run
 from lbench.dashboard.layouts.tables import benchmarks_to_tables
 
 RENAME_ENABLED = False
@@ -174,9 +174,9 @@ def handle_date_filter(apply_clicks, clear_clicks, start_date, end_date):
     Output("date-range-picker", "start_date"),
     Output("date-range-picker", "end_date"),
     Input("date-filter-store", "data"),
-    Input("run-data-store", "data"),
+    Input("run-ids-store", "data"),
 )
-def sync_date_picker(date_filter, _run_data):
+def sync_date_picker(date_filter, _run_ids):
     if not date_filter:
         return None, None
     return date_filter.get("start_date"), date_filter.get("end_date")
@@ -189,11 +189,12 @@ def sync_date_picker(date_filter, _run_data):
     Output("benchmark-tables-container", "children"),
     Output("sidebar-container", "children"),
     Input({"type": "run-item-text", "index": dash.ALL}, "n_clicks"),
-    Input("run-data-store", "data"),
+    Input("run-ids-store", "data"),
     Input("date-filter-store", "data"),
 )
-def update_benchmarks_and_sidebar(n_clicks_list, run_data, date_filter):
+def update_benchmarks_and_sidebar(n_clicks_list, run_ids, date_filter):
     triggered = dash.ctx.triggered_id
+    run_data = get_run_data(run_ids)
 
     def placeholder(msg):
         return html.Div(
@@ -208,12 +209,12 @@ def update_benchmarks_and_sidebar(n_clicks_list, run_data, date_filter):
             },
         )
 
-    if not run_data or not isinstance(run_data, dict):
+    if not run_data:
         return placeholder("No run data found"), create_sidebar({})
 
     filtered_run_data = filter_runs_by_date(run_data, date_filter)
 
-    if not triggered or triggered in ("run-data-store", "date-filter-store"):
+    if not triggered or triggered in ("run-ids-store", "date-filter-store"):
         return placeholder("Select a run from the sidebar or plot series"), create_sidebar(filtered_run_data)
 
     if isinstance(triggered, dict) and triggered.get("type") == "run-item-text":
@@ -256,16 +257,16 @@ def show_tables(_):
     Output("rename-input", "value"),
     Output("rename-old-name", "data"),
     Output("rename-error", "children"),
-    Output("run-data-store", "data", allow_duplicate=True),
+    Output("run-ids-store", "data", allow_duplicate=True),
     Input({"type": "run-edit-btn", "index": dash.ALL}, "n_clicks"),
     Input("rename-cancel-btn", "n_clicks"),
     Input("rename-confirm-btn", "n_clicks"),
     State("rename-old-name", "data"),
     State("rename-input", "value"),
-    State("run-data-store", "data"),
+    State("run-ids-store", "data"),
     prevent_initial_call=True,
 )
-def handle_rename(edit_clicks, cancel_clicks, confirm_clicks, old_name, new_name, run_data):
+def handle_rename(edit_clicks, cancel_clicks, confirm_clicks, old_name, new_name, run_ids):
     triggered_id = dash.ctx.triggered_id
 
     if not triggered_id:
@@ -274,7 +275,7 @@ def handle_rename(edit_clicks, cancel_clicks, confirm_clicks, old_name, new_name
     if isinstance(triggered_id, dict) and triggered_id.get("type") == "run-edit-btn":
         idx = triggered_id.get("index")
         if idx is not None and edit_clicks[idx]:
-            run_name = list(run_data.keys())[idx]
+            run_name = run_ids[idx]
             return True, run_name, run_name, "", no_update
         return no_update, no_update, no_update, no_update, no_update
 
@@ -286,7 +287,7 @@ def handle_rename(edit_clicks, cancel_clicks, confirm_clicks, old_name, new_name
             abort(403)
         success, message, new_run_data = rename_run(old_name, new_name)
         if success:
-            return False, "", "", "", new_run_data
+            return False, "", "", "", list(new_run_data)
         return no_update, no_update, no_update, message, no_update
 
     return no_update, no_update, no_update, no_update, no_update
